@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      target: builder
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
+      - PUBLIC_APPWRITE_PROJECT_ID=${PUBLIC_APPWRITE_PROJECT_ID}
+      - APPWRITE_API_KEY=${APPWRITE_API_KEY}
+    command: yarn dev --host 
