@@ -1,23 +1,47 @@
 # TimetablePro
 
-A modern school timetable management system built with SvelteKit and Appwrite.
+A modern school timetable management system built with SvelteKit and Appwrite Cloud. This application provides a comprehensive solution for managing school schedules, room allocations, and teacher availability.
 
 ## Features
 
-- User authentication and role-based access control
-- Class scheduling with conflict detection
-- Room management
-- Teacher availability management
-- Interactive schedule visualization
-- Modern UI with Tailwind CSS and shadcn/ui
+- 🔐 **User Authentication**
+  - Secure login and registration
+  - Role-based access control (Admin, Teacher, Student)
+  - Profile management with avatar support
+
+- 📅 **Schedule Management**
+  - Interactive timetable view
+  - Conflict detection for room and teacher bookings
+  - Drag-and-drop schedule creation (coming soon)
+  - Automatic schedule generation (coming soon)
+
+- 🏫 **Room Management**
+  - Room capacity tracking
+  - Room type categorization
+  - Building-wise organization
+  - Advanced filtering and search
+
+- 👩‍🏫 **Teacher Availability**
+  - Weekly availability settings
+  - Automatic conflict prevention
+  - Visual availability calendar
+
+- 🎨 **Modern UI/UX**
+  - Responsive design
+  - Dark mode support (coming soon)
+  - Accessible components using shadcn/ui
+  - Beautiful animations and transitions
 
 ## Tech Stack
 
-- Frontend: SvelteKit
-- Backend: Appwrite Cloud
-- Styling: Tailwind CSS
-- UI Components: shadcn-svelte
-- Icons: Lucide Icons
+- **Frontend**: SvelteKit
+- **Backend**: Appwrite Cloud
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn-svelte
+- **Type Safety**: TypeScript
+- **Authentication**: Appwrite Auth
+- **Database**: Appwrite Database
+- **Storage**: Appwrite Storage
 
 ## Prerequisites
 
@@ -25,78 +49,104 @@ A modern school timetable management system built with SvelteKit and Appwrite.
 - Yarn package manager
 - Appwrite Cloud account
 
-## Setup
+## Environment Setup
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/timetablepro.git
-cd timetablepro
-```
+Create a `.env` file in the root directory with the following variables:
 
-2. Install dependencies:
-```bash
-yarn install
-```
-
-3. Create a `.env` file based on `.env.example`:
-```bash
-cp .env.example .env
-```
-
-4. Update the `.env` file with your Appwrite credentials:
-```bash
-APPWRITE_PROJECT_ID=your-project-id
+```env
 PUBLIC_APPWRITE_PROJECT_ID=your-project-id
+PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
 APPWRITE_API_KEY=your-api-key
 ```
 
-5. Set up Appwrite:
-   - Create a new project in Appwrite Cloud
-   - Create a database with the following collections:
-     - users
-     - rooms
-     - schedules
-     - availability
-   - Set up authentication methods (email/password)
-   - Create API keys with necessary permissions
+## Installation
 
-6. Start the development server:
-```bash
-yarn dev
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/timetablepro.git
+   cd timetablepro
+   ```
+
+2. Install dependencies:
+   ```bash
+   yarn install
+   ```
+
+3. Initialize Appwrite collections and buckets:
+   ```bash
+   yarn init-db
+   ```
+
+4. Start the development server:
+   ```bash
+   yarn dev
+   ```
 
 ## Project Structure
 
 ```
-src/
-├── lib/
-│   ├── components/    # UI components
-│   ├── config/        # Configuration files
-│   ├── services/      # API and database services
-│   ├── stores/        # Svelte stores
-│   └── utils/         # Utility functions
-├── routes/
-│   ├── (auth)/        # Authentication routes
-│   └── (dashboard)/   # Dashboard routes
-└── app.d.ts           # TypeScript declarations
+timetablepro/
+├── src/
+│   ├── lib/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── services/       # API and business logic
+│   │   ├── stores/         # State management
+│   │   ├── utils/          # Helper functions
+│   │   └── config/         # Configuration files
+│   ├── routes/             # SvelteKit routes/pages
+│   └── app.html           # HTML template
+├── static/                 # Static assets
+├── scripts/               # Setup and utility scripts
+├── tests/                 # Test files
+└── docs/                  # Additional documentation
 ```
 
-## Development
+## Available Scripts
 
-- Run development server: `yarn dev`
-- Build for production: `yarn build`
-- Preview production build: `yarn preview`
-- Check code style: `yarn lint`
-- Format code: `yarn format`
+- `yarn dev` - Start development server
+- `yarn build` - Build for production
+- `yarn preview` - Preview production build
+- `yarn test` - Run tests
+- `yarn lint` - Check code style
+- `yarn format` - Format code
+- `yarn init-db` - Initialize Appwrite database
+
+## Role-Based Access
+
+- **Admin**
+  - Manage all schedules
+  - Manage rooms
+  - View system statistics
+  - Access all features
+
+- **Teacher**
+  - View assigned schedules
+  - Set availability
+  - Update profile
+
+- **Student**
+  - View class schedules
+  - View room information
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature/my-feature`
-5. Submit a pull request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## Documentation
+
+- [API Documentation](./docs/API.md)
+- [Development Guide](./docs/DEVELOPMENT.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+- [User Guide](./docs/USER_GUIDE.md)
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, email support@timetablepro.com or join our Slack channel.
