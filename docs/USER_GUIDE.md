@@ -332,9 +332,14 @@ graph TD
     Manage_Schedules --> Edit_Schedule[Edit Schedule]
     Manage_Schedules --> Delete_Schedule[Delete Schedule]
     
-    style Login fill:#f9f,stroke:#333,stroke-width:2px
-    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
-    style Manage_Users,Manage_Rooms,Manage_Schedules fill:#bfb,stroke:#333,stroke-width:2px
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef primary fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef secondary fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef action fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class Login,Dashboard default
+    class Manage_Users,Manage_Rooms,Manage_Schedules primary
+    class Add_User,Edit_User,Delete_User,Add_Room,Edit_Room,Delete_Room,Create_Schedule,Edit_Schedule,Delete_Schedule action
 ```
 
 ### Teacher Workflow
@@ -355,9 +360,14 @@ graph TD
     Profile --> Update_Info[Update Info]
     Profile --> Change_Avatar[Change Avatar]
     
-    style Login fill:#f9f,stroke:#333,stroke-width:2px
-    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
-    style View_Schedule,Set_Availability,Profile fill:#bfb,stroke:#333,stroke-width:2px
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef primary fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef secondary fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef action fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class Login,Dashboard default
+    class View_Schedule,Set_Availability,Profile primary
+    class Check_Classes,Report_Conflict,Select_Days,Set_Hours,Update_Info,Change_Avatar action
 ```
 
 ### Student Workflow
@@ -378,29 +388,34 @@ graph TD
     Profile --> Update_Info[Update Info]
     Profile --> Change_Avatar[Change Avatar]
     
-    style Login fill:#f9f,stroke:#333,stroke-width:2px
-    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
-    style View_Schedule,View_Rooms,Profile fill:#bfb,stroke:#333,stroke-width:2px
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef primary fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef secondary fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef action fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class Login,Dashboard default
+    class View_Schedule,View_Rooms,Profile primary
+    class Daily_View,Weekly_View,Room_Info,Room_Availability,Update_Info,Change_Avatar action
 ```
 
 ## Feature Interactions
 
 ```mermaid
 flowchart TD
-    subgraph Schedule Management
+    subgraph Schedule["Schedule Management"]
         Create[Create Schedule]
         Edit[Edit Schedule]
         Delete[Delete Schedule]
         View[View Schedule]
     end
     
-    subgraph Room Management
+    subgraph Room["Room Management"]
         CheckRoom[Check Room]
         BookRoom[Book Room]
         ReleaseRoom[Release Room]
     end
     
-    subgraph Teacher Management
+    subgraph Teacher["Teacher Management"]
         CheckAvail[Check Availability]
         SetAvail[Set Availability]
         Notify[Notify Teacher]
@@ -414,9 +429,16 @@ flowchart TD
     Edit --> BookRoom
     Delete --> ReleaseRoom
     
-    style Schedule Management fill:#f9f,stroke:#333,stroke-width:2px
-    style Room Management fill:#bbf,stroke:#333,stroke-width:2px
-    style Teacher Management fill:#bfb,stroke:#333,stroke-width:2px
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef action fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef management fill:#ffe6e6,stroke:#333,stroke-width:2px
+    
+    class Create,Edit,Delete,View default
+    class CheckRoom,BookRoom,ReleaseRoom,CheckAvail,SetAvail,Notify action
+    
+    style Schedule fill:#f0f7ff,stroke:#333,stroke-width:2px
+    style Room fill:#e6ffe6,stroke:#333,stroke-width:2px
+    style Teacher fill:#ffe6e6,stroke:#333,stroke-width:2px
 ```
 
 ## Notification System

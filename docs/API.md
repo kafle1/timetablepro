@@ -331,6 +331,12 @@ sequenceDiagram
     F-->>C: User + Session
 
     Note over C,F: Store session in local storage
+
+    %% Color definitions
+    style C fill:#f0f7ff,stroke:#333,stroke-width:2px
+    style F fill:#e6ffe6,stroke:#333,stroke-width:2px
+    style A fill:#ffe6e6,stroke:#333,stroke-width:2px
+    style D fill:#fff0f0,stroke:#333,stroke-width:2px
 ```
 
 ## Schedule Creation Flow
@@ -354,6 +360,11 @@ sequenceDiagram
         D-->>F: Schedule Created
         F-->>C: Success Response
     end
+
+    %% Color definitions
+    style C fill:#f0f7ff,stroke:#333,stroke-width:2px
+    style F fill:#e6ffe6,stroke:#333,stroke-width:2px
+    style D fill:#fff0f0,stroke:#333,stroke-width:2px
 ```
 
 ## Database Schema
@@ -363,6 +374,17 @@ erDiagram
     User ||--o{ Schedule : "has"
     User ||--o{ Availability : "sets"
     Room ||--o{ Schedule : "used_in"
+    
+    %% Entity styling
+    classDef user fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef schedule fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef room fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef availability fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class User user
+    class Schedule schedule
+    class Room room
+    class Availability availability
     
     User {
         string id PK
@@ -403,19 +425,19 @@ erDiagram
 
 ```mermaid
 flowchart TD
-    subgraph Client
+    subgraph Client["Client Layer"]
         UI[User Interface]
         Store[State Store]
         Cache[Local Cache]
     end
     
-    subgraph API Layer
+    subgraph API["API Layer"]
         Auth[Authentication]
         Validation[Data Validation]
         ErrorHandler[Error Handler]
     end
     
-    subgraph Backend
+    subgraph Backend["Backend Layer"]
         AppwriteAuth[Appwrite Auth]
         AppwriteDB[Appwrite Database]
         AppwriteStorage[Appwrite Storage]
@@ -430,9 +452,17 @@ flowchart TD
     Validation --> AppwriteDB
     ErrorHandler --> UI
     
-    style Client fill:#f9f,stroke:#333,stroke-width:2px
-    style API Layer fill:#bbf,stroke:#333,stroke-width:2px
-    style Backend fill:#bfb,stroke:#333,stroke-width:2px
+    classDef client fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef api fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef backend fill:#ffe6e6,stroke:#333,stroke-width:2px
+    
+    class UI,Store,Cache client
+    class Auth,Validation,ErrorHandler api
+    class AppwriteAuth,AppwriteDB,AppwriteStorage backend
+    
+    style Client fill:#f0f7ff,stroke:#333,stroke-width:2px
+    style API fill:#e6ffe6,stroke:#333,stroke-width:2px
+    style Backend fill:#ffe6e6,stroke:#333,stroke-width:2px
 ```
 
 ## Error Handling Flow
