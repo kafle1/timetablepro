@@ -16,6 +16,10 @@ Welcome to TimetablePro! This guide will help you understand how to use the syst
 - [Notification System](#notification-system)
 - [Mobile Interface Flow](#mobile-interface-flow)
 - [Data Synchronization](#data-synchronization)
+- [User Interaction Flow](#user-interaction-flow)
+- [Permission Flow](#permission-flow)
+- [Schedule Creation](#schedule-creation)
+- [Navigation Structure](#navigation-structure)
 
 ## Getting Started
 
@@ -527,4 +531,69 @@ flowchart TD
     style Local Storage fill:#f9f,stroke:#333,stroke-width:2px
     style Network fill:#bbf,stroke:#333,stroke-width:2px
     style Server fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## User Interaction Flow
+
+```mermaid
+graph LR
+    A[User] --> B[Login]
+    B --> C[Dashboard]
+    C --> D[View Schedule]
+    C --> E[Manage Profile]
+    C --> F[Settings]
+    
+    D --> G[Daily View]
+    D --> H[Weekly View]
+    E --> I[Update Info]
+    E --> J[Change Avatar]
+    F --> K[Preferences]
+    F --> L[Notifications]
+```
+
+## Permission Flow
+
+```mermaid
+graph TB
+    A[User Request] --> B{Check Role}
+    B -->|Admin| C[Full Access]
+    B -->|Teacher| D[Limited Access]
+    B -->|Student| E[Basic Access]
+    
+    C --> F[Manage All]
+    D --> G[Manage Own]
+    E --> H[View Only]
+```
+
+## Schedule Creation
+
+```mermaid
+graph TB
+    A[Start] --> B{Check Permission}
+    B -->|Yes| C[Select Time]
+    B -->|No| D[Error]
+    C --> E{Check Conflicts}
+    E -->|No Conflicts| F[Create Schedule]
+    E -->|Has Conflicts| G[Show Warning]
+```
+
+## Navigation Structure
+
+```mermaid
+graph TB
+    A[Home] --> B[Schedule]
+    A --> C[Rooms]
+    A --> D[Profile]
+    
+    B --> E[View]
+    B --> F[Edit]
+    B --> G[Delete]
+    
+    C --> H[List]
+    C --> I[Details]
+    C --> J[Book]
+    
+    D --> K[Info]
+    D --> L[Settings]
+    D --> M[Logout]
 ``` 

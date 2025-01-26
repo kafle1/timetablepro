@@ -482,4 +482,48 @@ flowchart TD
     end
     
     style Rate Limiter fill:#f9f,stroke:#333,stroke-width:2px
+```
+
+## API Request Flow
+
+```mermaid
+graph LR
+    A[Client] --> B[API Gateway]
+    B --> C{Auth Check}
+    C -->|Valid| D[Process Request]
+    C -->|Invalid| E[Return Error]
+    D --> F[Return Response]
+```
+
+## Authentication Process
+
+```mermaid
+graph TB
+    A[Start] --> B[Get Credentials]
+    B --> C{Validate}
+    C -->|Valid| D[Create Session]
+    C -->|Invalid| E[Auth Error]
+    D --> F[Return Token]
+```
+
+## Data Access Flow
+
+```mermaid
+graph TB
+    A[Request] --> B{Cache Check}
+    B -->|Hit| C[Return Cached]
+    B -->|Miss| D[Query DB]
+    D --> E[Update Cache]
+    E --> F[Return Data]
+```
+
+## Error Handling
+
+```mermaid
+graph TB
+    A[Error] --> B{Type Check}
+    B -->|Auth| C[401 Response]
+    B -->|Permission| D[403 Response]
+    B -->|Validation| E[400 Response]
+    B -->|Server| F[500 Response]
 ``` 
