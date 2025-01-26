@@ -13,6 +13,8 @@ This guide provides detailed instructions for deploying TimetablePro to various 
 - [Database Setup](#database-setup)
 - [Monitoring and Maintenance](#monitoring-and-maintenance)
 - [Troubleshooting](#troubleshooting)
+- [Deployment Architecture](#deployment-architecture)
+- [CI/CD Workflow](#ci-cd-workflow)
 
 ## Prerequisites
 
@@ -338,4 +340,71 @@ server {
 3. Quarterly Tasks:
    - Update SSL certificates
    - Review and update documentation
-   - Perform load testing 
+   - Perform load testing
+
+## Deployment Architecture
+
+```mermaid
+graph TD
+    subgraph Client Layer
+        Browser[Web Browser]
+        Mobile[Mobile Browser]
+    end
+    
+    subgraph CDN Layer
+        CDN[Content Delivery Network]
+    end
+    
+    subgraph Application Layer
+        LB[Load Balancer]
+        App1[App Server 1]
+        App2[App Server 2]
+        Cache[Redis Cache]
+    end
+    
+    subgraph Backend Services
+        Auth[Appwrite Auth]
+        DB[Appwrite Database]
+        Storage[Appwrite Storage]
+    end
+    
+    Browser --> CDN
+    Mobile --> CDN
+    CDN --> LB
+    LB --> App1
+    LB --> App2
+    App1 --> Cache
+    App2 --> Cache
+    App1 --> Backend Services
+    App2 --> Backend Services
+    
+    style Client Layer fill:#f9f,stroke:#333,stroke-width:2px
+    style CDN Layer fill:#bbf,stroke:#333,stroke-width:2px
+    style Application Layer fill:#bfb,stroke:#333,stroke-width:2px
+    style Backend Services fill:#fbb,stroke:#333,stroke-width:2px
+```
+
+## CI/CD Workflow
+
+```mermaid
+graph LR
+    subgraph Development
+        Code[Code Changes] --> Tests[Run Tests]
+        Tests --> Build[Build App]
+    end
+    
+    subgraph Staging
+        Build --> Deploy_Staging[Deploy to Staging]
+        Deploy_Staging --> Integration_Tests[Integration Tests]
+    end
+    
+    subgraph Production
+        Integration_Tests --> Deploy_Prod[Deploy to Production]
+        Deploy_Prod --> Health_Check[Health Checks]
+        Health_Check --> Monitor[Monitoring]
+    end
+    
+    style Development fill:#f9f,stroke:#333,stroke-width:2px
+    style Staging fill:#bbf,stroke:#333,stroke-width:2px
+    style Production fill:#bfb,stroke:#333,stroke-width:2px
+``` 

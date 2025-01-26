@@ -43,6 +43,62 @@ A modern school timetable management system built with SvelteKit and Appwrite Cl
 - **Database**: Appwrite Database
 - **Storage**: Appwrite Storage
 
+## System Architecture
+
+```mermaid
+graph TD
+    Client[Client Browser] --> SvelteKit[SvelteKit Frontend]
+    SvelteKit --> Auth[Appwrite Auth]
+    SvelteKit --> DB[Appwrite Database]
+    SvelteKit --> Storage[Appwrite Storage]
+    
+    subgraph Frontend
+        SvelteKit
+        UI[UI Components]
+        State[State Management]
+        SvelteKit --> UI
+        SvelteKit --> State
+    end
+    
+    subgraph Backend Services
+        Auth
+        DB
+        Storage
+    end
+    
+    style Client fill:#f9f,stroke:#333,stroke-width:2px
+    style Frontend fill:#bbf,stroke:#333,stroke-width:2px
+    style Backend Services fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Directory Structure
+
+```mermaid
+graph TD
+    Root[timetablepro/] --> Src[src/]
+    Root --> Static[static/]
+    Root --> Scripts[scripts/]
+    Root --> Tests[tests/]
+    Root --> Docs[docs/]
+    
+    Src --> Lib[lib/]
+    Src --> Routes[routes/]
+    Src --> App[app.html]
+    
+    Lib --> Components[components/]
+    Lib --> Services[services/]
+    Lib --> Stores[stores/]
+    Lib --> Utils[utils/]
+    Lib --> Config[config/]
+    
+    Components --> UI[ui/]
+    Components --> Shared[shared/]
+    
+    style Root fill:#f9f,stroke:#333,stroke-width:2px
+    style Src fill:#bbf,stroke:#333,stroke-width:2px
+    style Lib fill:#bfb,stroke:#333,stroke-width:2px
+```
+
 ## Prerequisites
 
 - Node.js (v16 or higher)

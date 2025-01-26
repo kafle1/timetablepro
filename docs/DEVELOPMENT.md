@@ -12,6 +12,8 @@ This guide provides detailed information for developers working on the Timetable
 - [Testing](#testing)
 - [Performance Optimization](#performance-optimization)
 - [Security Guidelines](#security-guidelines)
+- [Component Architecture](#component-architecture)
+- [State Management Flow](#state-management-flow)
 
 ## Development Setup
 
@@ -344,4 +346,69 @@ rm -rf node_modules/.vite
 
 # Restart development server
 yarn dev --force
+```
+
+## Component Architecture
+
+```mermaid
+graph TD
+    subgraph Core Components
+        Layout[Layout Component]
+        Nav[Navigation]
+        Auth[Auth Provider]
+    end
+    
+    subgraph Feature Components
+        Schedule[Schedule Manager]
+        Room[Room Manager]
+        Profile[Profile Manager]
+    end
+    
+    subgraph UI Components
+        Button[Button]
+        Input[Input]
+        Modal[Modal]
+        Table[Table]
+    end
+    
+    subgraph Shared Components
+        Avatar[Avatar]
+        Calendar[Calendar]
+        TimeSlot[TimeSlot]
+    end
+    
+    Layout --> Nav
+    Layout --> Auth
+    
+    Schedule --> UI Components
+    Room --> UI Components
+    Profile --> UI Components
+    
+    Feature Components --> Shared Components
+    
+    style Core Components fill:#f9f,stroke:#333,stroke-width:2px
+    style Feature Components fill:#bbf,stroke:#333,stroke-width:2px
+    style UI Components fill:#bfb,stroke:#333,stroke-width:2px
+    style Shared Components fill:#fbb,stroke:#333,stroke-width:2px
+```
+
+## State Management Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unauthenticated
+    Unauthenticated --> Authenticated: Login
+    Authenticated --> Unauthenticated: Logout
+    
+    state Authenticated {
+        [*] --> LoadingData
+        LoadingData --> Ready: Data Loaded
+        Ready --> LoadingData: Refresh Data
+        
+        state Ready {
+            [*] --> ViewingSchedule
+            ViewingSchedule --> EditingSchedule: Edit
+            EditingSchedule --> ViewingSchedule: Save/Cancel
+        }
+    }
 ``` 

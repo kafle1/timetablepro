@@ -312,4 +312,46 @@ try {
     }
     // Handle error appropriately
 }
+```
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant F as Frontend
+    participant A as Appwrite Auth
+    participant D as Database
+    
+    C->>F: Login Request
+    F->>A: createSession(email, password)
+    A-->>F: Session Token
+    F->>D: getUser()
+    D-->>F: User Data
+    F-->>C: User + Session
+
+    Note over C,F: Store session in local storage
+```
+
+## Schedule Creation Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant F as Frontend
+    participant D as Database
+    
+    C->>F: Create Schedule Request
+    F->>D: Check Room Availability
+    D-->>F: Room Status
+    F->>D: Check Teacher Availability
+    D-->>F: Teacher Status
+    
+    alt Conflict Found
+        F-->>C: Error: Conflict
+    else No Conflict
+        F->>D: Create Schedule
+        D-->>F: Schedule Created
+        F-->>C: Success Response
+    end
 ``` 

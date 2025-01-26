@@ -11,6 +11,7 @@ Welcome to TimetablePro! This guide will help you understand how to use the syst
 - [Teacher Guide](#teacher-guide)
 - [Student Guide](#student-guide)
 - [Troubleshooting](#troubleshooting)
+- [User Workflows](#user-workflows)
 
 ## Getting Started
 
@@ -298,4 +299,78 @@ Subscribe to notifications for:
 - Schedule changes
 - Room updates
 - System announcements
-- Important alerts 
+- Important alerts
+
+## User Workflows
+
+### Admin Workflow
+
+```mermaid
+graph TD
+    Login[Login] --> Dashboard[Admin Dashboard]
+    Dashboard --> Manage_Users[Manage Users]
+    Dashboard --> Manage_Rooms[Manage Rooms]
+    Dashboard --> Manage_Schedules[Manage Schedules]
+    
+    Manage_Users --> Add_User[Add User]
+    Manage_Users --> Edit_User[Edit User]
+    Manage_Users --> Delete_User[Delete User]
+    
+    Manage_Rooms --> Add_Room[Add Room]
+    Manage_Rooms --> Edit_Room[Edit Room]
+    Manage_Rooms --> Delete_Room[Delete Room]
+    
+    Manage_Schedules --> Create_Schedule[Create Schedule]
+    Manage_Schedules --> Edit_Schedule[Edit Schedule]
+    Manage_Schedules --> Delete_Schedule[Delete Schedule]
+    
+    style Login fill:#f9f,stroke:#333,stroke-width:2px
+    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
+    style Manage_Users,Manage_Rooms,Manage_Schedules fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+### Teacher Workflow
+
+```mermaid
+graph TD
+    Login[Login] --> Dashboard[Teacher Dashboard]
+    Dashboard --> View_Schedule[View Schedule]
+    Dashboard --> Set_Availability[Set Availability]
+    Dashboard --> Profile[Manage Profile]
+    
+    View_Schedule --> Check_Classes[Check Classes]
+    View_Schedule --> Report_Conflict[Report Conflict]
+    
+    Set_Availability --> Select_Days[Select Days]
+    Set_Availability --> Set_Hours[Set Hours]
+    
+    Profile --> Update_Info[Update Info]
+    Profile --> Change_Avatar[Change Avatar]
+    
+    style Login fill:#f9f,stroke:#333,stroke-width:2px
+    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
+    style View_Schedule,Set_Availability,Profile fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+### Student Workflow
+
+```mermaid
+graph TD
+    Login[Login] --> Dashboard[Student Dashboard]
+    Dashboard --> View_Schedule[View Schedule]
+    Dashboard --> View_Rooms[View Rooms]
+    Dashboard --> Profile[Manage Profile]
+    
+    View_Schedule --> Daily_View[Daily View]
+    View_Schedule --> Weekly_View[Weekly View]
+    
+    View_Rooms --> Room_Info[Room Information]
+    View_Rooms --> Room_Availability[Check Availability]
+    
+    Profile --> Update_Info[Update Info]
+    Profile --> Change_Avatar[Change Avatar]
+    
+    style Login fill:#f9f,stroke:#333,stroke-width:2px
+    style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
+    style View_Schedule,View_Rooms,Profile fill:#bfb,stroke:#333,stroke-width:2px
+``` 
