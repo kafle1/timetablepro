@@ -407,4 +407,168 @@ graph LR
     style Development fill:#f9f,stroke:#333,stroke-width:2px
     style Staging fill:#bbf,stroke:#333,stroke-width:2px
     style Production fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Monitoring Flow
+
+```mermaid
+flowchart TD
+    subgraph Application
+        Metrics[Metrics Collection]
+        Logs[Log Generation]
+        Traces[Distributed Tracing]
+    end
+    
+    subgraph Monitoring Stack
+        Prometheus[Prometheus]
+        Grafana[Grafana]
+        Loki[Loki]
+        Jaeger[Jaeger]
+    end
+    
+    subgraph Alerts
+        Rules[Alert Rules]
+        Manager[Alert Manager]
+        Notification[Notifications]
+    end
+    
+    Metrics --> Prometheus
+    Logs --> Loki
+    Traces --> Jaeger
+    
+    Prometheus --> Grafana
+    Loki --> Grafana
+    Jaeger --> Grafana
+    
+    Grafana --> Rules
+    Rules --> Manager
+    Manager --> Notification
+    
+    style Application fill:#f9f,stroke:#333,stroke-width:2px
+    style Monitoring Stack fill:#bbf,stroke:#333,stroke-width:2px
+    style Alerts fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Scaling Architecture
+
+```mermaid
+flowchart TD
+    subgraph Load Balancing
+        CloudFlare[CloudFlare CDN]
+        LB[Load Balancer]
+    end
+    
+    subgraph Application Tier
+        App1[App Server 1]
+        App2[App Server 2]
+        App3[App Server 3]
+    end
+    
+    subgraph Caching Layer
+        Redis1[Redis Primary]
+        Redis2[Redis Replica]
+    end
+    
+    subgraph Backend Services
+        Auth[Appwrite Auth]
+        DB[Appwrite Database]
+        Storage[Appwrite Storage]
+    end
+    
+    CloudFlare --> LB
+    LB --> App1
+    LB --> App2
+    LB --> App3
+    
+    App1 --> Redis1
+    App2 --> Redis1
+    App3 --> Redis1
+    Redis1 --> Redis2
+    
+    App1 --> Backend Services
+    App2 --> Backend Services
+    App3 --> Backend Services
+    
+    style Load Balancing fill:#f9f,stroke:#333,stroke-width:2px
+    style Application Tier fill:#bbf,stroke:#333,stroke-width:2px
+    style Caching Layer fill:#bfb,stroke:#333,stroke-width:2px
+    style Backend Services fill:#fbb,stroke:#333,stroke-width:2px
+```
+
+## Backup Strategy
+
+```mermaid
+flowchart TD
+    subgraph Data Sources
+        AppDB[Appwrite Database]
+        Files[File Storage]
+        Config[Configuration]
+    end
+    
+    subgraph Backup Process
+        Schedule[Scheduled Jobs]
+        Snapshot[Create Snapshot]
+        Compress[Compress Data]
+        Encrypt[Encrypt Backup]
+    end
+    
+    subgraph Storage
+        Local[Local Storage]
+        Cloud[Cloud Storage]
+        Archive[Long-term Archive]
+    end
+    
+    AppDB --> Schedule
+    Files --> Schedule
+    Config --> Schedule
+    
+    Schedule --> Snapshot
+    Snapshot --> Compress
+    Compress --> Encrypt
+    
+    Encrypt --> Local
+    Encrypt --> Cloud
+    Cloud --> Archive
+    
+    style Data Sources fill:#f9f,stroke:#333,stroke-width:2px
+    style Backup Process fill:#bbf,stroke:#333,stroke-width:2px
+    style Storage fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Security Architecture
+
+```mermaid
+flowchart TD
+    subgraph External
+        User[User]
+        API[API Clients]
+    end
+    
+    subgraph Security Layer
+        WAF[Web Application Firewall]
+        Auth[Authentication]
+        CORS[CORS Policy]
+        Rate[Rate Limiting]
+    end
+    
+    subgraph Application
+        Validation[Input Validation]
+        Sanitization[Data Sanitization]
+        Encryption[Data Encryption]
+    end
+    
+    User --> WAF
+    API --> WAF
+    
+    WAF --> Auth
+    Auth --> CORS
+    CORS --> Rate
+    
+    Rate --> Validation
+    Validation --> Sanitization
+    Sanitization --> Encryption
+    
+    style External fill:#f9f,stroke:#333,stroke-width:2px
+    style Security Layer fill:#bbf,stroke:#333,stroke-width:2px
+    style Application fill:#bfb,stroke:#333,stroke-width:2px
 ``` 

@@ -354,4 +354,132 @@ sequenceDiagram
         D-->>F: Schedule Created
         F-->>C: Success Response
     end
+```
+
+## Database Schema
+
+```mermaid
+erDiagram
+    User ||--o{ Schedule : "has"
+    User ||--o{ Availability : "sets"
+    Room ||--o{ Schedule : "used_in"
+    
+    User {
+        string id PK
+        string name
+        string email
+        string role
+        string avatarUrl
+    }
+    
+    Schedule {
+        string id PK
+        string subject
+        string teacherId FK
+        string roomId FK
+        string dayOfWeek
+        string startTime
+        string endTime
+        string class
+    }
+    
+    Room {
+        string id PK
+        string name
+        int capacity
+        string type
+        string building
+    }
+    
+    Availability {
+        string id PK
+        string teacherId FK
+        string dayOfWeek
+        string[] availableSlots
+    }
+```
+
+## Data Flow
+
+```mermaid
+flowchart TD
+    subgraph Client
+        UI[User Interface]
+        Store[State Store]
+        Cache[Local Cache]
+    end
+    
+    subgraph API Layer
+        Auth[Authentication]
+        Validation[Data Validation]
+        ErrorHandler[Error Handler]
+    end
+    
+    subgraph Backend
+        AppwriteAuth[Appwrite Auth]
+        AppwriteDB[Appwrite Database]
+        AppwriteStorage[Appwrite Storage]
+    end
+    
+    UI --> Store
+    Store --> Cache
+    UI --> Auth
+    Auth --> Validation
+    Validation --> ErrorHandler
+    Auth --> AppwriteAuth
+    Validation --> AppwriteDB
+    ErrorHandler --> UI
+    
+    style Client fill:#f9f,stroke:#333,stroke-width:2px
+    style API Layer fill:#bbf,stroke:#333,stroke-width:2px
+    style Backend fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Error Handling Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Request
+    Request --> Validation
+    
+    state Validation {
+        [*] --> CheckInput
+        CheckInput --> ValidInput: Valid
+        CheckInput --> InvalidInput: Invalid
+        InvalidInput --> ReturnError
+        ValidInput --> ProcessRequest
+    }
+    
+    Validation --> ProcessRequest: Valid
+    Validation --> ReturnError: Invalid
+    
+    ProcessRequest --> Success
+    ProcessRequest --> APIError
+    
+    APIError --> RetryLogic
+    RetryLogic --> ProcessRequest: Retry
+    RetryLogic --> ReturnError: Max Retries
+    
+    Success --> [*]
+    ReturnError --> [*]
+```
+
+## API Rate Limiting
+
+```mermaid
+flowchart TD
+    subgraph Rate Limiter
+        Request[API Request]
+        Check[Check Rate Limit]
+        Allow[Allow Request]
+        Block[Block Request]
+        
+        Request --> Check
+        Check --> Allow: Under Limit
+        Check --> Block: Over Limit
+        Allow --> UpdateCount[Update Counter]
+        Block --> ReturnError[Return 429 Error]
+    end
+    
+    style Rate Limiter fill:#f9f,stroke:#333,stroke-width:2px
 ``` 

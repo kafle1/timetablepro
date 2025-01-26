@@ -12,6 +12,10 @@ Welcome to TimetablePro! This guide will help you understand how to use the syst
 - [Student Guide](#student-guide)
 - [Troubleshooting](#troubleshooting)
 - [User Workflows](#user-workflows)
+- [Feature Interactions](#feature-interactions)
+- [Notification System](#notification-system)
+- [Mobile Interface Flow](#mobile-interface-flow)
+- [Data Synchronization](#data-synchronization)
 
 ## Getting Started
 
@@ -373,4 +377,154 @@ graph TD
     style Login fill:#f9f,stroke:#333,stroke-width:2px
     style Dashboard fill:#bbf,stroke:#333,stroke-width:2px
     style View_Schedule,View_Rooms,Profile fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Feature Interactions
+
+```mermaid
+flowchart TD
+    subgraph Schedule Management
+        Create[Create Schedule]
+        Edit[Edit Schedule]
+        Delete[Delete Schedule]
+        View[View Schedule]
+    end
+    
+    subgraph Room Management
+        CheckRoom[Check Room]
+        BookRoom[Book Room]
+        ReleaseRoom[Release Room]
+    end
+    
+    subgraph Teacher Management
+        CheckAvail[Check Availability]
+        SetAvail[Set Availability]
+        Notify[Notify Teacher]
+    end
+    
+    Create --> CheckRoom
+    Create --> CheckAvail
+    CheckRoom --> BookRoom
+    CheckAvail --> Notify
+    Edit --> ReleaseRoom
+    Edit --> BookRoom
+    Delete --> ReleaseRoom
+    
+    style Schedule Management fill:#f9f,stroke:#333,stroke-width:2px
+    style Room Management fill:#bbf,stroke:#333,stroke-width:2px
+    style Teacher Management fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Notification System
+
+```mermaid
+flowchart TD
+    subgraph Events
+        Schedule[Schedule Change]
+        Room[Room Update]
+        System[System Update]
+    end
+    
+    subgraph Processing
+        Filter[Filter Rules]
+        Template[Message Template]
+        Queue[Message Queue]
+    end
+    
+    subgraph Delivery
+        Email[Email]
+        InApp[In-App]
+        Push[Push Notification]
+    end
+    
+    Schedule --> Filter
+    Room --> Filter
+    System --> Filter
+    
+    Filter --> Template
+    Template --> Queue
+    
+    Queue --> Email
+    Queue --> InApp
+    Queue --> Push
+    
+    style Events fill:#f9f,stroke:#333,stroke-width:2px
+    style Processing fill:#bbf,stroke:#333,stroke-width:2px
+    style Delivery fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Mobile Interface Flow
+
+```mermaid
+flowchart TD
+    subgraph Navigation
+        Home[Home Screen]
+        Menu[Menu]
+        Search[Search]
+    end
+    
+    subgraph Views
+        Daily[Daily View]
+        Weekly[Weekly View]
+        Monthly[Monthly View]
+    end
+    
+    subgraph Actions
+        Add[Add Event]
+        Edit[Edit Event]
+        Share[Share Schedule]
+    end
+    
+    Home --> Menu
+    Menu --> Search
+    
+    Search --> Daily
+    Search --> Weekly
+    Search --> Monthly
+    
+    Daily --> Add
+    Weekly --> Edit
+    Monthly --> Share
+    
+    style Navigation fill:#f9f,stroke:#333,stroke-width:2px
+    style Views fill:#bbf,stroke:#333,stroke-width:2px
+    style Actions fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Data Synchronization
+
+```mermaid
+flowchart TD
+    subgraph Local Storage
+        Cache[Cache]
+        Store[Store]
+        Queue[Sync Queue]
+    end
+    
+    subgraph Network
+        Online[Online]
+        Offline[Offline]
+        Sync[Sync Process]
+    end
+    
+    subgraph Server
+        Validate[Validate]
+        Update[Update]
+        Respond[Response]
+    end
+    
+    Cache --> Store
+    Store --> Queue
+    
+    Online --> Sync
+    Offline --> Queue
+    Queue --> Sync
+    
+    Sync --> Validate
+    Validate --> Update
+    Update --> Respond
+    
+    style Local Storage fill:#f9f,stroke:#333,stroke-width:2px
+    style Network fill:#bbf,stroke:#333,stroke-width:2px
+    style Server fill:#bfb,stroke:#333,stroke-width:2px
 ``` 

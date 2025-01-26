@@ -248,6 +248,151 @@ test('button triggers click event', async () => {
 });
 ```
 
+## Testing Flow
+
+```mermaid
+flowchart TD
+    subgraph Unit Tests
+        Component[Component Tests]
+        Utils[Utility Tests]
+        Store[Store Tests]
+    end
+    
+    subgraph Integration Tests
+        API[API Tests]
+        Flow[Flow Tests]
+        E2E[End-to-End Tests]
+    end
+    
+    subgraph CI Pipeline
+        Lint[Lint Code]
+        Build[Build App]
+        Test[Run Tests]
+        Report[Generate Report]
+    end
+    
+    Component --> Test
+    Utils --> Test
+    Store --> Test
+    API --> Test
+    Flow --> Test
+    E2E --> Test
+    
+    Test --> Report
+    Lint --> Build
+    Build --> Test
+    
+    style Unit Tests fill:#f9f,stroke:#333,stroke-width:2px
+    style Integration Tests fill:#bbf,stroke:#333,stroke-width:2px
+    style CI Pipeline fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Build Process
+
+```mermaid
+flowchart TD
+    subgraph Development
+        TS[TypeScript Files]
+        Svelte[Svelte Files]
+        CSS[CSS/SCSS Files]
+        Assets[Static Assets]
+    end
+    
+    subgraph Build Steps
+        TSC[TypeScript Compiler]
+        Vite[Vite Build]
+        PostCSS[PostCSS/Tailwind]
+        Bundle[Bundle Assets]
+    end
+    
+    subgraph Output
+        JS[JavaScript]
+        HTML[HTML]
+        Styles[CSS]
+        Static[Static Files]
+    end
+    
+    TS --> TSC
+    Svelte --> Vite
+    CSS --> PostCSS
+    Assets --> Bundle
+    
+    TSC --> JS
+    Vite --> HTML
+    PostCSS --> Styles
+    Bundle --> Static
+    
+    style Development fill:#f9f,stroke:#333,stroke-width:2px
+    style Build Steps fill:#bbf,stroke:#333,stroke-width:2px
+    style Output fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+## Component Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created
+    Created --> Mounted: onMount
+    
+    state Mounted {
+        [*] --> Idle
+        Idle --> Updating: Props Change
+        Updating --> Idle: Update Complete
+        Idle --> Loading: Data Fetch
+        Loading --> Idle: Data Loaded
+    }
+    
+    Mounted --> Destroyed: onDestroy
+    Destroyed --> [*]
+    
+    note right of Mounted
+        Components can trigger updates from:
+        - Props changes
+        - Store updates
+        - User interactions
+    end note
+```
+
+## Development Workflow
+
+```mermaid
+flowchart TD
+    subgraph Local
+        Code[Write Code]
+        Test[Run Tests]
+        Dev[Dev Server]
+    end
+    
+    subgraph Version Control
+        Branch[Create Branch]
+        Commit[Commit Changes]
+        PR[Create PR]
+    end
+    
+    subgraph Review
+        CodeReview[Code Review]
+        CI[CI Checks]
+        Approve[Approve PR]
+    end
+    
+    Code --> Test
+    Test --> Dev
+    Dev --> Code
+    
+    Branch --> Code
+    Code --> Commit
+    Commit --> PR
+    
+    PR --> CodeReview
+    PR --> CI
+    CodeReview --> Approve
+    CI --> Approve
+    
+    style Local fill:#f9f,stroke:#333,stroke-width:2px
+    style Version Control fill:#bbf,stroke:#333,stroke-width:2px
+    style Review fill:#bfb,stroke:#333,stroke-width:2px
+```
+
 ## Performance Optimization
 
 ### Code Splitting
