@@ -549,6 +549,14 @@ graph LR
     E --> J[Change Avatar]
     F --> K[Preferences]
     F --> L[Notifications]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef action fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef feature fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class A,B default
+    class C,D,E,F action
+    class G,H,I,J,K,L feature
 ```
 
 ## Permission Flow
@@ -563,6 +571,16 @@ graph TB
     C --> F[Manage All]
     D --> G[Manage Own]
     E --> H[View Only]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef decision fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef access fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef action fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class A default
+    class B decision
+    class C,D,E access
+    class F,G,H action
 ```
 
 ## Schedule Creation
@@ -575,6 +593,16 @@ graph TB
     C --> E{Check Conflicts}
     E -->|No Conflicts| F[Create Schedule]
     E -->|Has Conflicts| G[Show Warning]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef decision fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef success fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef error fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class A default
+    class B,E decision
+    class C,F success
+    class D,G error
 ```
 
 ## Navigation Structure
@@ -596,4 +624,12 @@ graph TB
     D --> K[Info]
     D --> L[Settings]
     D --> M[Logout]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef main fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef action fill:#fff0f0,stroke:#333,stroke-width:2px
+    
+    class A default
+    class B,C,D main
+    class E,F,G,H,I,J,K,L,M action
 ``` 

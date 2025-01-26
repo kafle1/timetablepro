@@ -493,6 +493,18 @@ graph LR
     C -->|Valid| D[Process Request]
     C -->|Invalid| E[Return Error]
     D --> F[Return Response]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef gateway fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef error fill:#fff0f0,stroke:#333,stroke-width:2px
+    classDef success fill:#e6ffe6,stroke:#333,stroke-width:2px
+
+    class A default
+    class B gateway
+    class C check
+    class D,F success
+    class E error
 ```
 
 ## Authentication Process
@@ -504,6 +516,18 @@ graph TB
     C -->|Valid| D[Create Session]
     C -->|Invalid| E[Auth Error]
     D --> F[Return Token]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef process fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef validate fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef error fill:#fff0f0,stroke:#333,stroke-width:2px
+    classDef success fill:#e6ffe6,stroke:#333,stroke-width:2px
+
+    class A default
+    class B process
+    class C validate
+    class D,F success
+    class E error
 ```
 
 ## Data Access Flow
@@ -515,6 +539,17 @@ graph TB
     B -->|Miss| D[Query DB]
     D --> E[Update Cache]
     E --> F[Return Data]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef cache fill:#e6ffe6,stroke:#333,stroke-width:2px
+    classDef db fill:#fff0f0,stroke:#333,stroke-width:2px
+
+    class A default
+    class B check
+    class C,E cache
+    class D db
+    class F default
 ```
 
 ## Error Handling
@@ -526,4 +561,14 @@ graph TB
     B -->|Permission| D[403 Response]
     B -->|Validation| E[400 Response]
     B -->|Server| F[500 Response]
+
+    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
+    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
+    classDef client fill:#fff0f0,stroke:#333,stroke-width:2px
+    classDef server fill:#ffe6e6,stroke:#333,stroke-width:2px
+
+    class A default
+    class B check
+    class C,D,E client
+    class F server
 ``` 
