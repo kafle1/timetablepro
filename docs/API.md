@@ -151,11 +151,11 @@ sequenceDiagram
 
     Note over C,F: Store session in local storage
 
-    %% Color definitions
-    style C fill:#f0f7ff,stroke:#333,stroke-width:2px
-    style F fill:#e6ffe6,stroke:#333,stroke-width:2px
-    style A fill:#ffe6e6,stroke:#333,stroke-width:2px
-    style D fill:#fff0f0,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    style C fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    style F fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    style A fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    style D fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
 ```
 
 ## Schedule Creation Flow
@@ -180,10 +180,10 @@ sequenceDiagram
         F-->>C: Success Response
     end
 
-    %% Color definitions
-    style C fill:#f0f7ff,stroke:#333,stroke-width:2px
-    style F fill:#e6ffe6,stroke:#333,stroke-width:2px
-    style D fill:#fff0f0,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    style C fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    style F fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    style D fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
 ```
 
 ## Database Schema
@@ -194,11 +194,11 @@ erDiagram
     User ||--o{ Availability : "sets"
     Room ||--o{ Schedule : "used_in"
     
-    %% Entity styling
-    classDef user fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef schedule fill:#e6ffe6,stroke:#333,stroke-width:2px
-    classDef room fill:#ffe6e6,stroke:#333,stroke-width:2px
-    classDef availability fill:#fff0f0,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef user fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef schedule fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef room fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    classDef availability fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
     
     class User user
     class Schedule schedule
@@ -271,17 +271,18 @@ flowchart TD
     Validation --> AppwriteDB
     ErrorHandler --> UI
     
-    classDef client fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef api fill:#e6ffe6,stroke:#333,stroke-width:2px
-    classDef backend fill:#ffe6e6,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef client fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef api fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef backend fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
     
     class UI,Store,Cache client
     class Auth,Validation,ErrorHandler api
     class AppwriteAuth,AppwriteDB,AppwriteStorage backend
     
-    style Client fill:#f0f7ff,stroke:#333,stroke-width:2px
-    style API fill:#e6ffe6,stroke:#333,stroke-width:2px
-    style Backend fill:#ffe6e6,stroke:#333,stroke-width:2px
+    style Client fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    style API fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    style Backend fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
 ```
 
 ## Error Handling Flow
@@ -311,6 +312,12 @@ stateDiagram-v2
     
     Success --> [*]
     ReturnError --> [*]
+
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef process fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef error fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    classDef success fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
 ```
 
 ## API Rate Limiting
@@ -330,7 +337,16 @@ flowchart TD
         Block --> ReturnError[Return 429 Error]
     end
     
-    style Rate Limiter fill:#f9f,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef success fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef error fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    
+    class Request,Check default
+    class Allow,UpdateCount success
+    class Block,ReturnError error
+    
+    style Rate Limiter fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
 ```
 
 ## API Request Flow
@@ -343,11 +359,12 @@ graph LR
     C -->|Invalid| E[Return Error]
     D --> F[Return Response]
 
-    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef gateway fill:#e6ffe6,stroke:#333,stroke-width:2px
-    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
-    classDef error fill:#fff0f0,stroke:#333,stroke-width:2px
-    classDef success fill:#e6ffe6,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef gateway fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef check fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
+    classDef error fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    classDef success fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
 
     class A default
     class B gateway
@@ -366,11 +383,12 @@ graph TB
     C -->|Invalid| E[Auth Error]
     D --> F[Return Token]
 
-    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef process fill:#e6ffe6,stroke:#333,stroke-width:2px
-    classDef validate fill:#ffe6e6,stroke:#333,stroke-width:2px
-    classDef error fill:#fff0f0,stroke:#333,stroke-width:2px
-    classDef success fill:#e6ffe6,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef process fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef validate fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
+    classDef error fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    classDef success fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
 
     class A default
     class B process
@@ -389,10 +407,11 @@ graph TB
     D --> E[Update Cache]
     E --> F[Return Data]
 
-    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
-    classDef cache fill:#e6ffe6,stroke:#333,stroke-width:2px
-    classDef db fill:#fff0f0,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef check fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
+    classDef cache fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef db fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
 
     class A default
     class B check
@@ -411,10 +430,11 @@ graph TB
     B -->|Validation| E[400 Response]
     B -->|Server| F[500 Response]
 
-    classDef default fill:#f0f7ff,stroke:#333,stroke-width:2px
-    classDef check fill:#ffe6e6,stroke:#333,stroke-width:2px
-    classDef client fill:#fff0f0,stroke:#333,stroke-width:2px
-    classDef server fill:#ffe6e6,stroke:#333,stroke-width:2px
+    %% Strong, accessible colors
+    classDef default fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef check fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
+    classDef client fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+    classDef server fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
 
     class A default
     class B check

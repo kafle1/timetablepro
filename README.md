@@ -37,6 +37,17 @@ graph LR
     subgraph Backend
         Appwrite
     end
+
+    %% Strong, accessible colors
+    classDef client fill:#2563eb,color:#ffffff,stroke:#1e40af,stroke-width:2px
+    classDef frontend fill:#059669,color:#ffffff,stroke:#047857,stroke-width:2px
+    classDef backend fill:#dc2626,color:#ffffff,stroke:#b91c1c,stroke-width:2px
+
+    class Client client
+    class SvelteKit frontend
+    class Appwrite backend
+    class Frontend frontend
+    class Backend backend
 ```
 
 ## Getting Started
