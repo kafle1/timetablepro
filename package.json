@@ -7,11 +7,13 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
+		"test": "vitest",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write .",
-		"init-db": "ts-node scripts/init-appwrite.ts"
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"init-db": "bun run scripts/init-appwrite.ts",
+		"cleanup-db": "bun run scripts/cleanup-appwrite.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
@@ -40,6 +42,7 @@
 		"bits-ui": "^0.11.8",
 		"clsx": "^2.0.0",
 		"lucide-svelte": "^0.294.0",
+		"node-appwrite": "^14.2.0",
 		"tailwind-merge": "^2.0.0",
 		"tailwind-variants": "^0.1.18"
 	}
