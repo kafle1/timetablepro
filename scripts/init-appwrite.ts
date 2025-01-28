@@ -1,12 +1,19 @@
-import { Client, Databases, Storage, Teams, ID, Permission, Role } from 'appwrite';
+import { Client, Databases, Storage, Teams, ID, IndexType } from 'node-appwrite';
 import { appwriteConfig } from '../src/lib/config/appwrite';
 
-const client = new Client()
-    .setEndpoint('https://cloud.appwrite.io/v1')
-    .setProject(process.env.APPWRITE_PROJECT_ID || '');
+if (!process.env.PUBLIC_APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY || !process.env.PUBLIC_APPWRITE_ENDPOINT) {
+    console.error('Missing required environment variables. Please check your .env file.');
+    process.exit(1);
+}
 
-// Add API key for server-side operations
-client.setKey(process.env.APPWRITE_API_KEY || '');
+// Initialize the Appwrite client
+const client = new Client();
+
+// Configure the client
+client
+    .setEndpoint(process.env.PUBLIC_APPWRITE_ENDPOINT)
+    .setProject(process.env.PUBLIC_APPWRITE_PROJECT_ID)
+    .setKey(process.env.APPWRITE_API_KEY);
 
 const databases = new Databases(client);
 const storage = new Storage(client);
@@ -14,10 +21,9 @@ const teams = new Teams(client);
 
 async function createDatabase() {
     try {
-        const database = await databases.createDatabase(
+        const database = await databases.create(
             ID.unique(),
-            appwriteConfig.databaseId,
-            [Permission.read(Role.any()), Permission.write(Role.team('admin'))]
+            appwriteConfig.databaseId
         );
         console.log('Database created:', database);
         return database;
@@ -27,25 +33,39 @@ async function createDatabase() {
     }
 }
 
+async function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function createCollections(databaseId: string) {
     try {
         // Users Collection
         const users = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.users,
-            [
-                Permission.read(Role.any()),
-                Permission.write(Role.user(Role.any().toString()))
-            ]
+            appwriteConfig.collections.users
         );
 
-        await Promise.all([
-            databases.createAttribute(databaseId, users.$id, 'string', 'name', 255, true),
-            databases.createAttribute(databaseId, users.$id, 'email', 'email', true),
-            databases.createAttribute(databaseId, users.$id, 'string', 'role', 20, true),
-            databases.createAttribute(databaseId, users.$id, 'string', 'avatarUrl', 255, false)
-        ]);
+        // Create user attributes
+        for (const attr of [
+            ['name', 'string', 255, true],
+            ['email', 'email', 0, true],
+            ['role', 'string', 20, true],
+            ['avatarUrl', 'string', 255, false]
+        ] as const) {
+            if (attr[1] === 'email') {
+                await databases.createEmailAttribute(databaseId, users.$id, attr[0], attr[3]);
+            } else {
+                await databases.createStringAttribute(
+                    databaseId, 
+                    users.$id, 
+                    attr[0], 
+                    attr[2], 
+                    attr[3]
+                );
+            }
+            await delay(500);
+        }
 
         console.log('Users collection created');
 
@@ -53,19 +73,23 @@ async function createCollections(databaseId: string) {
         const rooms = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.rooms,
-            [
-                Permission.read(Role.any()),
-                Permission.write(Role.team('admin'))
-            ]
+            appwriteConfig.collections.rooms
         );
 
-        await Promise.all([
-            databases.createAttribute(databaseId, rooms.$id, 'string', 'name', 255, true),
-            databases.createAttribute(databaseId, rooms.$id, 'integer', 'capacity', true),
-            databases.createAttribute(databaseId, rooms.$id, 'string', 'type', 50, true),
-            databases.createAttribute(databaseId, rooms.$id, 'string', 'building', 50, true)
-        ]);
+        // Create room attributes
+        for (const attr of [
+            ['name', 'string', 255],
+            ['capacity', 'integer', 0],
+            ['type', 'string', 50],
+            ['building', 'string', 50]
+        ] as const) {
+            if (attr[1] === 'integer') {
+                await databases.createIntegerAttribute(databaseId, rooms.$id, attr[0], true);
+            } else {
+                await databases.createStringAttribute(databaseId, rooms.$id, attr[0], attr[2], true);
+            }
+            await delay(500);
+        }
 
         console.log('Rooms collection created');
 
@@ -73,22 +97,22 @@ async function createCollections(databaseId: string) {
         const schedules = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.schedules,
-            [
-                Permission.read(Role.any()),
-                Permission.write(Role.team('admin'))
-            ]
+            appwriteConfig.collections.schedules
         );
 
-        await Promise.all([
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'subject', 255, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'teacherId', 36, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'roomId', 36, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'dayOfWeek', 20, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'startTime', 10, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'endTime', 10, true),
-            databases.createAttribute(databaseId, schedules.$id, 'string', 'class', 50, true)
-        ]);
+        // Create schedule attributes
+        for (const [name, length] of [
+            ['subject', 255],
+            ['teacherId', 36],
+            ['roomId', 36],
+            ['dayOfWeek', 20],
+            ['startTime', 10],
+            ['endTime', 10],
+            ['class', 50]
+        ] as const) {
+            await databases.createStringAttribute(databaseId, schedules.$id, name, length, true);
+            await delay(500);
+        }
 
         console.log('Schedules collection created');
 
@@ -96,37 +120,46 @@ async function createCollections(databaseId: string) {
         const availability = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.availability,
-            [
-                Permission.read(Role.any()),
-                Permission.write(Role.user(Role.any().toString()))
-            ]
+            appwriteConfig.collections.availability
         );
 
-        await Promise.all([
-            databases.createAttribute(databaseId, availability.$id, 'string', 'teacherId', 36, true),
-            databases.createAttribute(databaseId, availability.$id, 'string', 'dayOfWeek', 20, true),
-            databases.createAttribute(databaseId, availability.$id, 'string', 'availableSlots', 255, true)
-        ]);
+        // Create availability attributes
+        for (const [name, length] of [
+            ['teacherId', 36],
+            ['dayOfWeek', 20],
+            ['availableSlots', 255]
+        ] as const) {
+            await databases.createStringAttribute(databaseId, availability.$id, name, length, true);
+            await delay(500);
+        }
 
         console.log('Availability collection created');
 
+        // Wait for all attributes to be ready before creating indexes
+        await delay(2000);
+
         // Create indexes
-        await Promise.all([
+        const indexPromises = [
             // Users indexes
-            databases.createIndex(databaseId, users.$id, 'email_unique', 'unique', ['email']),
-            databases.createIndex(databaseId, users.$id, 'role_search', 'key', ['role']),
+            databases.createIndex(databaseId, users.$id, 'email_unique', IndexType.Unique, ['email']),
+            databases.createIndex(databaseId, users.$id, 'role_search', IndexType.Key, ['role']),
             
             // Schedules indexes
-            databases.createIndex(databaseId, schedules.$id, 'room_time_unique', 'unique', ['roomId', 'dayOfWeek', 'startTime']),
-            databases.createIndex(databaseId, schedules.$id, 'teacher_time_unique', 'unique', ['teacherId', 'dayOfWeek', 'startTime']),
-            databases.createIndex(databaseId, schedules.$id, 'teacher_search', 'key', ['teacherId']),
-            databases.createIndex(databaseId, schedules.$id, 'room_search', 'key', ['roomId']),
+            databases.createIndex(databaseId, schedules.$id, 'room_time_unique', IndexType.Unique, ['roomId', 'dayOfWeek', 'startTime']),
+            databases.createIndex(databaseId, schedules.$id, 'teacher_time_unique', IndexType.Unique, ['teacherId', 'dayOfWeek', 'startTime']),
+            databases.createIndex(databaseId, schedules.$id, 'teacher_search', IndexType.Key, ['teacherId']),
+            databases.createIndex(databaseId, schedules.$id, 'room_search', IndexType.Key, ['roomId']),
             
             // Availability indexes
-            databases.createIndex(databaseId, availability.$id, 'teacher_day_unique', 'unique', ['teacherId', 'dayOfWeek']),
-            databases.createIndex(databaseId, availability.$id, 'teacher_search', 'key', ['teacherId'])
-        ]);
+            databases.createIndex(databaseId, availability.$id, 'teacher_day_unique', IndexType.Unique, ['teacherId', 'dayOfWeek']),
+            databases.createIndex(databaseId, availability.$id, 'teacher_search', IndexType.Key, ['teacherId'])
+        ];
+
+        for (const promise of indexPromises) {
+            await promise;
+            await delay(500);
+        }
+
         console.log('Indexes created successfully');
 
     } catch (error) {
@@ -139,11 +172,7 @@ async function createAvatarBucket() {
     try {
         const bucket = await storage.createBucket(
             ID.unique(),
-            appwriteConfig.buckets.avatars,
-            [
-                Permission.read(Role.any()),
-                Permission.write(Role.user(Role.any().toString()))
-            ]
+            appwriteConfig.buckets.avatars
         );
         console.log('Avatar bucket created:', bucket);
     } catch (error) {
@@ -156,8 +185,7 @@ async function createAdminTeam() {
     try {
         const team = await teams.create(
             ID.unique(),
-            'Administrators',
-            [Permission.read(Role.any()), Permission.write(Role.team('admin'))]
+            'Administrators'
         );
         console.log('Admin team created:', team);
     } catch (error) {
