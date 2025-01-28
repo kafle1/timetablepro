@@ -1,4 +1,4 @@
-import { Client, Account, Databases, Storage, Teams } from 'appwrite';
+import { Client, Account, Databases, Storage, Teams, ID } from 'appwrite';
 
 // Initialize the Appwrite client
 const client = new Client()
@@ -10,6 +10,7 @@ export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const teams = new Teams(client);
+export { ID };
 
 // Appwrite configuration constants
 export const appwriteConfig = {
