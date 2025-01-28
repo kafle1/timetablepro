@@ -1,14 +1,17 @@
 import { Client, Account, Databases, Storage, Teams } from 'appwrite';
 
+// Initialize the Appwrite client
 const client = new Client()
-    .setEndpoint('https://cloud.appwrite.io/v1')
+    .setEndpoint(process.env.PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
     .setProject(process.env.PUBLIC_APPWRITE_PROJECT_ID || '');
 
+// Initialize services
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const teams = new Teams(client);
 
+// Appwrite configuration constants
 export const appwriteConfig = {
     databaseId: 'timetable',
     collections: {
