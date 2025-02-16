@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { HTMLAttributes } from "svelte/elements";
-	import { cn } from "$lib/utils.js";
+	import { cn } from "$lib/utils";
+	import type { HTMLDivAttributes } from 'svelte/elements';
 
-	type $$Props = HTMLAttributes<HTMLDivElement>;
+	type $$Props = HTMLDivAttributes;
 
-	let className: $$Props["class"] = undefined;
+	let className: string | undefined = undefined;
 	export { className as class };
 </script>
 

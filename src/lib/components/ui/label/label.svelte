@@ -1,21 +1,19 @@
 <script lang="ts">
-	import { Label as LabelPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
+	import { cn } from '$lib/utils';
+	import type { HTMLLabelAttributes } from 'svelte/elements';
 
-	type $$Props = LabelPrimitive.Props;
-	type $$Events = LabelPrimitive.Events;
+	type $$Props = HTMLLabelAttributes;
 
-	let className: $$Props["class"] = undefined;
+	let className: string | undefined = undefined;
 	export { className as class };
 </script>
 
-<LabelPrimitive.Root
+<label
 	class={cn(
-		"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+		'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
 		className
 	)}
 	{...$$restProps}
-	on:mousedown
 >
 	<slot />
-</LabelPrimitive.Root>
+</label>

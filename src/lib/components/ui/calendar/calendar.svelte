@@ -4,7 +4,7 @@
   import { Button } from '../button';
 
   export let selected: Date | undefined = undefined;
-  export let mode: 'single' | 'multiple' | 'range' = 'single';
+  export const mode = 'single';
   export let className: string | undefined = undefined;
   export let onSelect: (date: Date) => void = () => {};
 
@@ -66,7 +66,7 @@
 
   <div class="grid grid-cols-7 gap-1">
     {#each Array(firstDay) as _}
-      <div />
+      <div></div>
     {/each}
     {#each Array(daysInMonth) as _, i}
       {@const date = new Date(year, month, i + 1)}
