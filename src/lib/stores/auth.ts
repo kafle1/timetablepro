@@ -2,13 +2,8 @@ import { writable } from 'svelte/store';
 import { account } from '$lib/config/appwrite';
 import type { Models } from 'appwrite';
 
-export interface AppUser extends Models.User<Models.Preferences> {
-    role: 'admin' | 'teacher' | 'student';
-    avatarUrl?: string;
-}
-
 interface AuthState {
-    user: AppUser | null;
+    user: Models.User<Models.Preferences> | null;
     loading: boolean;
     error: string | null;
 }
@@ -22,21 +17,74 @@ const createAuthStore = () => {
 
     return {
         subscribe,
-        setUser: (user: AppUser | null) => 
-            update(state => ({ ...state, user, loading: false })),
-        setError: (error: string) => 
-            update(state => ({ ...state, error, loading: false })),
-        setLoading: (loading: boolean) => 
-            update(state => ({ ...state, loading })),
+        login: async (email: string, password: string) => {
+            try {
+                update(state => ({ ...state, loading: true, error: null }));
+                await account.createEmailSession(email, password);
+                const user = await account.get();
+                set({ user, loading: false, error: null });
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    loading: false,
+                    error: error instanceof Error ? error.message : 'Failed to login'
+                }));
+                throw error;
+            }
+        },
+        register: async (email: string, password: string, name: string) => {
+            try {
+                update(state => ({ ...state, loading: true, error: null }));
+                await account.create('unique()', email, password, name);
+                await account.createEmailSession(email, password);
+                const user = await account.get();
+                set({ user, loading: false, error: null });
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    loading: false,
+                    error: error instanceof Error ? error.message : 'Failed to register'
+                }));
+                throw error;
+            }
+        },
         logout: async () => {
             try {
+                update(state => ({ ...state, loading: true, error: null }));
                 await account.deleteSession('current');
                 set({ user: null, loading: false, error: null });
             } catch (error) {
-                console.error('Logout error:', error);
+                update(state => ({
+                    ...state,
+                    loading: false,
+                    error: error instanceof Error ? error.message : 'Failed to logout'
+                }));
+                throw error;
             }
         },
-        reset: () => set({ user: null, loading: false, error: null })
+        checkSession: async () => {
+            try {
+                update(state => ({ ...state, loading: true, error: null }));
+                const user = await account.get();
+                set({ user, loading: false, error: null });
+            } catch (error) {
+                set({ user: null, loading: false, error: null });
+            }
+        },
+        updateProfile: async (name: string) => {
+            try {
+                update(state => ({ ...state, loading: true, error: null }));
+                const user = await account.updateName(name);
+                set({ user, loading: false, error: null });
+            } catch (error) {
+                update(state => ({
+                    ...state,
+                    loading: false,
+                    error: error instanceof Error ? error.message : 'Failed to update profile'
+                }));
+                throw error;
+            }
+        }
     };
 };
 
