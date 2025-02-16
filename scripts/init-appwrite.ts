@@ -1,5 +1,8 @@
-import { Client, Databases, Storage, Teams, ID, IndexType } from 'node-appwrite';
+import { Client, Databases, Storage, Teams, ID, IndexType, Permission, Role } from 'node-appwrite';
 import { appwriteConfig } from '../src/lib/config/appwrite';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 if (!process.env.PUBLIC_APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY || !process.env.PUBLIC_APPWRITE_ENDPOINT) {
     console.error('Missing required environment variables. Please check your .env file.');
@@ -40,100 +43,87 @@ async function delay(ms: number) {
 async function createCollections(databaseId: string) {
     try {
         // Users Collection
-        const users = await databases.createCollection(
+        const usersCollection = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.users
+            'users',
+            [
+                Permission.read(Role.users()),
+                Permission.create(Role.users()),
+                Permission.update(Role.users())
+            ]
         );
 
-        // Create user attributes
-        for (const attr of [
-            ['name', 'string', 255, true],
-            ['email', 'email', 0, true],
-            ['role', 'string', 20, true],
-            ['avatarUrl', 'string', 255, false]
-        ] as const) {
-            if (attr[1] === 'email') {
-                await databases.createEmailAttribute(databaseId, users.$id, attr[0], attr[3]);
-            } else {
-                await databases.createStringAttribute(
-                    databaseId, 
-                    users.$id, 
-                    attr[0], 
-                    attr[2], 
-                    attr[3]
-                );
-            }
-            await delay(500);
-        }
+        // Add User Fields
+        await databases.createStringAttribute(databaseId, usersCollection.$id, 'name', 255, true);
+        await databases.createStringAttribute(databaseId, usersCollection.$id, 'email', 255, true);
+        await databases.createStringAttribute(databaseId, usersCollection.$id, 'role', 20, true);
+        await databases.createStringAttribute(databaseId, usersCollection.$id, 'availability', 2048, false);
 
         console.log('Users collection created');
 
         // Rooms Collection
-        const rooms = await databases.createCollection(
+        const roomsCollection = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.rooms
+            'rooms',
+            [
+                Permission.read(Role.users()),
+                Permission.create(Role.team('admin')),
+                Permission.update(Role.team('admin')),
+                Permission.delete(Role.team('admin'))
+            ]
         );
 
-        // Create room attributes
-        for (const attr of [
-            ['name', 'string', 255],
-            ['capacity', 'integer', 0],
-            ['type', 'string', 50],
-            ['building', 'string', 50]
-        ] as const) {
-            if (attr[1] === 'integer') {
-                await databases.createIntegerAttribute(databaseId, rooms.$id, attr[0], true);
-            } else {
-                await databases.createStringAttribute(databaseId, rooms.$id, attr[0], attr[2], true);
-            }
-            await delay(500);
-        }
+        // Add Room Fields
+        await databases.createStringAttribute(databaseId, roomsCollection.$id, 'roomName', 255, true);
+        await databases.createIntegerAttribute(databaseId, roomsCollection.$id, 'capacity', true);
+        await databases.createStringAttribute(databaseId, roomsCollection.$id, 'availability', 2048, false);
 
         console.log('Rooms collection created');
 
         // Schedules Collection
-        const schedules = await databases.createCollection(
+        const schedulesCollection = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.schedules
+            'schedules',
+            [
+                Permission.read(Role.users()),
+                Permission.create(Role.team('admin')),
+                Permission.update(Role.team('admin')),
+                Permission.delete(Role.team('admin'))
+            ]
         );
 
-        // Create schedule attributes
-        for (const [name, length] of [
-            ['subject', 255],
-            ['teacherId', 36],
-            ['roomId', 36],
-            ['dayOfWeek', 20],
-            ['startTime', 10],
-            ['endTime', 10],
-            ['class', 50]
-        ] as const) {
-            await databases.createStringAttribute(databaseId, schedules.$id, name, length, true);
-            await delay(500);
-        }
+        // Add Schedule Fields
+        await databases.createStringAttribute(databaseId, schedulesCollection.$id, 'className', 255, true);
+        await databases.createStringAttribute(databaseId, schedulesCollection.$id, 'teacherId', 255, true);
+        await databases.createStringAttribute(databaseId, schedulesCollection.$id, 'roomId', 255, true);
+        await databases.createDatetimeAttribute(databaseId, schedulesCollection.$id, 'startTime', true);
+        await databases.createIntegerAttribute(databaseId, schedulesCollection.$id, 'duration', true);
+        await databases.createStringAttribute(databaseId, schedulesCollection.$id, 'conflictStatus', 20, false);
 
         console.log('Schedules collection created');
 
-        // Availability Collection
-        const availability = await databases.createCollection(
+        // Notifications Collection
+        const notificationsCollection = await databases.createCollection(
             databaseId,
             ID.unique(),
-            appwriteConfig.collections.availability
+            'notifications',
+            [
+                Permission.read(Role.users()),
+                Permission.create(Role.team('admin')),
+                Permission.update(Role.users())
+            ]
         );
 
-        // Create availability attributes
-        for (const [name, length] of [
-            ['teacherId', 36],
-            ['dayOfWeek', 20],
-            ['availableSlots', 255]
-        ] as const) {
-            await databases.createStringAttribute(databaseId, availability.$id, name, length, true);
-            await delay(500);
-        }
+        // Add Notification Fields
+        await databases.createStringAttribute(databaseId, notificationsCollection.$id, 'userId', 255, true);
+        await databases.createStringAttribute(databaseId, notificationsCollection.$id, 'message', 1024, true);
+        await databases.createStringAttribute(databaseId, notificationsCollection.$id, 'status', 20, true);
+        await databases.createDatetimeAttribute(databaseId, notificationsCollection.$id, 'timestamp', true);
 
-        console.log('Availability collection created');
+        console.log('Notifications collection created');
 
         // Wait for all attributes to be ready before creating indexes
         await delay(2000);
@@ -141,14 +131,14 @@ async function createCollections(databaseId: string) {
         // Create indexes
         const indexPromises = [
             // Users indexes
-            databases.createIndex(databaseId, users.$id, 'email_unique', IndexType.Unique, ['email']),
-            databases.createIndex(databaseId, users.$id, 'role_search', IndexType.Key, ['role']),
+            databases.createIndex(databaseId, usersCollection.$id, 'email_unique', IndexType.Unique, ['email']),
+            databases.createIndex(databaseId, usersCollection.$id, 'role_search', IndexType.Key, ['role']),
             
             // Schedules indexes
-            databases.createIndex(databaseId, schedules.$id, 'room_time_unique', IndexType.Unique, ['roomId', 'dayOfWeek', 'startTime']),
-            databases.createIndex(databaseId, schedules.$id, 'teacher_time_unique', IndexType.Unique, ['teacherId', 'dayOfWeek', 'startTime']),
-            databases.createIndex(databaseId, schedules.$id, 'teacher_search', IndexType.Key, ['teacherId']),
-            databases.createIndex(databaseId, schedules.$id, 'room_search', IndexType.Key, ['roomId']),
+            databases.createIndex(databaseId, schedulesCollection.$id, 'room_time_unique', IndexType.Unique, ['roomId', 'startTime']),
+            databases.createIndex(databaseId, schedulesCollection.$id, 'teacher_time_unique', IndexType.Unique, ['teacherId', 'startTime']),
+            databases.createIndex(databaseId, schedulesCollection.$id, 'teacher_search', IndexType.Key, ['teacherId']),
+            databases.createIndex(databaseId, schedulesCollection.$id, 'room_search', IndexType.Key, ['roomId']),
             
             // Availability indexes
             databases.createIndex(databaseId, availability.$id, 'teacher_day_unique', IndexType.Unique, ['teacherId', 'dayOfWeek']),

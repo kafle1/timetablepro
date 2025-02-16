@@ -1,123 +1,118 @@
-import { databases } from '$lib/config/appwrite';
-import { appwriteConfig } from '$lib/config/appwrite';
-import { ID, Query } from 'appwrite';
-import type { Models } from 'appwrite';
+import { databases } from '$lib/config';
+import { COLLECTIONS } from '$lib/config';
+import type { Schedule } from '$lib/types';
+import { handleAppwriteError } from '$lib/utils/error';
+import { Query } from 'appwrite';
 
-export type ScheduleData = {
-    subject: string;
-    teacherId: string;
+interface CreateScheduleParams {
+    title: string;
+    description?: string;
     roomId: string;
-    dayOfWeek: string;
+    teacherId: string;
     startTime: string;
-    endTime: string;
-    class: string;
-};
+    duration: number;
+}
 
-export interface Schedule extends Models.Document, ScheduleData {}
+interface UpdateScheduleParams extends Partial<CreateScheduleParams> {}
 
-export async function getSchedules(filters: { teacherId?: string; roomId?: string; dayOfWeek?: string } = {}) {
-    try {
-        const queries: string[] = [];
-        
-        if (filters.teacherId) {
-            queries.push(Query.equal('teacherId', filters.teacherId));
+class ScheduleService {
+    async createSchedule(params: CreateScheduleParams): Promise<Schedule> {
+        try {
+            const response = await databases.createDocument(
+                COLLECTIONS.SCHEDULES.databaseId,
+                COLLECTIONS.SCHEDULES.collectionId,
+                'unique()',
+                params
+            );
+            return response as Schedule;
+        } catch (error) {
+            throw handleAppwriteError(error);
         }
-        if (filters.roomId) {
-            queries.push(Query.equal('roomId', filters.roomId));
+    }
+
+    async updateSchedule(scheduleId: string, params: UpdateScheduleParams): Promise<Schedule> {
+        try {
+            const response = await databases.updateDocument(
+                COLLECTIONS.SCHEDULES.databaseId,
+                COLLECTIONS.SCHEDULES.collectionId,
+                scheduleId,
+                params
+            );
+            return response as Schedule;
+        } catch (error) {
+            throw handleAppwriteError(error);
         }
-        if (filters.dayOfWeek) {
-            queries.push(Query.equal('dayOfWeek', filters.dayOfWeek));
+    }
+
+    async deleteSchedule(scheduleId: string): Promise<void> {
+        try {
+            await databases.deleteDocument(
+                COLLECTIONS.SCHEDULES.databaseId,
+                COLLECTIONS.SCHEDULES.collectionId,
+                scheduleId
+            );
+        } catch (error) {
+            throw handleAppwriteError(error);
         }
+    }
 
-        const response = await databases.listDocuments<Schedule>(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.schedules,
-            queries
-        );
+    async listSchedules(filters?: {
+        startDate?: string;
+        endDate?: string;
+        teacherId?: string;
+        roomId?: string;
+    }): Promise<Schedule[]> {
+        try {
+            const queries: string[] = [];
 
-        return response.documents;
-    } catch (error) {
-        console.error('Error fetching schedules:', error);
-        throw error;
+            if (filters?.startDate) {
+                queries.push(Query.greaterThanEqual('startTime', filters.startDate));
+            }
+            if (filters?.endDate) {
+                queries.push(Query.lessThan('startTime', filters.endDate));
+            }
+            if (filters?.teacherId) {
+                queries.push(Query.equal('teacherId', filters.teacherId));
+            }
+            if (filters?.roomId) {
+                queries.push(Query.equal('roomId', filters.roomId));
+            }
+
+            const response = await databases.listDocuments(
+                COLLECTIONS.SCHEDULES.databaseId,
+                COLLECTIONS.SCHEDULES.collectionId,
+                queries
+            );
+            return response.documents as Schedule[];
+        } catch (error) {
+            throw handleAppwriteError(error);
+        }
+    }
+
+    async getSchedule(scheduleId: string): Promise<Schedule> {
+        try {
+            const response = await databases.getDocument(
+                COLLECTIONS.SCHEDULES.databaseId,
+                COLLECTIONS.SCHEDULES.collectionId,
+                scheduleId
+            );
+            return response as Schedule;
+        } catch (error) {
+            throw handleAppwriteError(error);
+        }
     }
 }
 
-export async function createSchedule(schedule: ScheduleData) {
+export const scheduleService = new ScheduleService();
+
+export async function getSchedules(): Promise<Schedule[]> {
     try {
-        const response = await databases.createDocument<Schedule>(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.schedules,
-            ID.unique(),
-            schedule
+        const response = await databases.listDocuments(
+            databases.databaseId,
+            'schedules'
         );
-
-        return response;
+        return response.documents as Schedule[];
     } catch (error) {
-        console.error('Error creating schedule:', error);
-        throw error;
+        throw handleAppwriteError(error);
     }
-}
-
-export async function updateSchedule(scheduleId: string, schedule: Partial<ScheduleData>) {
-    try {
-        const response = await databases.updateDocument<Schedule>(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.schedules,
-            scheduleId,
-            schedule
-        );
-
-        return response;
-    } catch (error) {
-        console.error('Error updating schedule:', error);
-        throw error;
-    }
-}
-
-export async function deleteSchedule(scheduleId: string) {
-    try {
-        await databases.deleteDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.schedules,
-            scheduleId
-        );
-    } catch (error) {
-        console.error('Error deleting schedule:', error);
-        throw error;
-    }
-}
-
-export function hasTimeConflict(
-    startTime1: string,
-    endTime1: string,
-    startTime2: string,
-    endTime2: string
-): boolean {
-    const start1 = new Date(`1970-01-01T${startTime1}`);
-    const end1 = new Date(`1970-01-01T${endTime1}`);
-    const start2 = new Date(`1970-01-01T${startTime2}`);
-    const end2 = new Date(`1970-01-01T${endTime2}`);
-
-    return start1 < end2 && start2 < end1;
-}
-
-export async function checkScheduleConflicts(
-    schedule: ScheduleData,
-    excludeScheduleId?: string
-): Promise<Schedule[]> {
-    const existingSchedules = await getSchedules({
-        dayOfWeek: schedule.dayOfWeek,
-        roomId: schedule.roomId
-    });
-
-    return existingSchedules.filter(
-        existing =>
-            existing.$id !== excludeScheduleId &&
-            hasTimeConflict(
-                schedule.startTime,
-                schedule.endTime,
-                existing.startTime,
-                existing.endTime
-            )
-    );
 } 

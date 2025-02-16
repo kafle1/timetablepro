@@ -60,3 +60,87 @@ export const flyAndScale = (
 		easing: cubicOut
 	};
 };
+
+export function formatDate(date: Date): string {
+	return new Intl.DateTimeFormat('en-US', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric'
+	}).format(date);
+}
+
+export function formatTime(date: Date): string {
+	return new Intl.DateTimeFormat('en-US', {
+		hour: 'numeric',
+		minute: 'numeric',
+		hour12: true
+	}).format(date);
+}
+
+export function formatDateTime(date: Date): string {
+	return `${formatDate(date)} at ${formatTime(date)}`;
+}
+
+export function getInitials(name: string): string {
+	return name
+		.split(' ')
+		.map(word => word[0])
+		.join('')
+		.toUpperCase();
+}
+
+export function generateTimeSlots(
+	startHour: number,
+	endHour: number,
+	duration: number
+): string[] {
+	const slots: string[] = [];
+	let currentHour = startHour;
+	let currentMinute = 0;
+
+	while (currentHour < endHour || (currentHour === endHour && currentMinute === 0)) {
+		const hour = currentHour.toString().padStart(2, '0');
+		const minute = currentMinute.toString().padStart(2, '0');
+		slots.push(`${hour}:${minute}`);
+
+		currentMinute += duration;
+		if (currentMinute >= 60) {
+			currentHour += Math.floor(currentMinute / 60);
+			currentMinute = currentMinute % 60;
+		}
+	}
+
+	return slots;
+}
+
+export function formatTimeAgo(timestamp: string): string {
+	const date = new Date(timestamp);
+	const now = new Date();
+	const diff = now.getTime() - date.getTime();
+	
+	// Less than a minute
+	if (diff < 60000) {
+		return 'Just now';
+	}
+	
+	// Less than an hour
+	if (diff < 3600000) {
+		const minutes = Math.floor(diff / 60000);
+		return `${minutes}m ago`;
+	}
+	
+	// Less than a day
+	if (diff < 86400000) {
+		const hours = Math.floor(diff / 3600000);
+		return `${hours}h ago`;
+	}
+	
+	// Less than a week
+	if (diff < 604800000) {
+		const days = Math.floor(diff / 86400000);
+		return `${days}d ago`;
+	}
+	
+	// Format as date
+	return date.toLocaleDateString();
+}

@@ -1,64 +1,71 @@
-import { fontFamily } from "tailwindcss/defaultTheme";
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
+import { fontFamily } from 'tailwindcss/defaultTheme';
+import { theme } from './src/lib/config/theme';
 
-const config: Config = {
-	darkMode: ["class"],
-	content: ["./src/**/*.{html,js,svelte,ts}"],
-	safelist: ["dark"],
+const config = {
+	darkMode: ['class'],
+	content: ['./src/**/*.{html,js,svelte,ts}'],
 	theme: {
 		container: {
 			center: true,
-			padding: "2rem",
+			padding: '2rem',
 			screens: {
-				"2xl": "1400px"
+				'2xl': '1400px'
 			}
 		},
 		extend: {
-			colors: {
-				border: "hsl(var(--border) / <alpha-value>)",
-				input: "hsl(var(--input) / <alpha-value>)",
-				ring: "hsl(var(--ring) / <alpha-value>)",
-				background: "hsl(var(--background) / <alpha-value>)",
-				foreground: "hsl(var(--foreground) / <alpha-value>)",
-				primary: {
-					DEFAULT: "hsl(var(--primary) / <alpha-value>)",
-					foreground: "hsl(var(--primary-foreground) / <alpha-value>)"
+			colors: theme.colors,
+			borderRadius: theme.radius,
+			fontFamily: {
+				sans: ['var(--font-sans)', ...fontFamily.sans],
+				mono: ['var(--font-mono)', ...fontFamily.mono]
+			},
+			fontSize: theme.fontSizes,
+			fontWeight: theme.fontWeights,
+			lineHeight: theme.lineHeights,
+			spacing: theme.spacing,
+			boxShadow: theme.shadows,
+			zIndex: theme.zIndices,
+			transitionDuration: {
+				DEFAULT: '150ms',
+				fast: '100ms',
+				slow: '300ms',
+				slower: '500ms'
+			},
+			transitionTimingFunction: {
+				DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
+				linear: 'linear',
+				in: 'cubic-bezier(0.4, 0, 1, 1)',
+				out: 'cubic-bezier(0, 0, 0.2, 1)',
+				'in-out': 'cubic-bezier(0.4, 0, 0.2, 1)'
+			},
+			keyframes: {
+				'accordion-down': {
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
-				secondary: {
-					DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
-					foreground: "hsl(var(--secondary-foreground) / <alpha-value>)"
+				'accordion-up': {
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
-				destructive: {
-					DEFAULT: "hsl(var(--destructive) / <alpha-value>)",
-					foreground: "hsl(var(--destructive-foreground) / <alpha-value>)"
+				'collapsible-down': {
+					from: { height: '0' },
+					to: { height: 'var(--radix-collapsible-content-height)' }
 				},
-				muted: {
-					DEFAULT: "hsl(var(--muted) / <alpha-value>)",
-					foreground: "hsl(var(--muted-foreground) / <alpha-value>)"
-				},
-				accent: {
-					DEFAULT: "hsl(var(--accent) / <alpha-value>)",
-					foreground: "hsl(var(--accent-foreground) / <alpha-value>)"
-				},
-				popover: {
-					DEFAULT: "hsl(var(--popover) / <alpha-value>)",
-					foreground: "hsl(var(--popover-foreground) / <alpha-value>)"
-				},
-				card: {
-					DEFAULT: "hsl(var(--card) / <alpha-value>)",
-					foreground: "hsl(var(--card-foreground) / <alpha-value>)"
+				'collapsible-up': {
+					from: { height: 'var(--radix-collapsible-content-height)' },
+					to: { height: '0' }
 				}
 			},
-			borderRadius: {
-				lg: "var(--radius)",
-				md: "calc(var(--radius) - 2px)",
-				sm: "calc(var(--radius) - 4px)"
-			},
-			fontFamily: {
-				sans: [...fontFamily.sans]
+			animation: {
+				'accordion-down': 'accordion-down 0.2s ease-out',
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'collapsible-down': 'collapsible-down 0.2s ease-out',
+				'collapsible-up': 'collapsible-up 0.2s ease-out'
 			}
 		}
 	},
-};
+	plugins: [require('tailwindcss-animate')]
+} satisfies Config;
 
 export default config;

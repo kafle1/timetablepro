@@ -1,8 +1,53 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+
   * {
     @apply border-border m-0 p-0;
     box-sizing: border-box;
@@ -16,64 +61,82 @@
   }
 }
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-
-  --primary: 210 93% 48%;
-  --primary-foreground: 210 40% 98%;
-
-  --secondary: 220 16% 36%;
-  --secondary-foreground: 210 40% 98%;
-
-  --accent: 160 94% 45%;
-  --accent-foreground: 160 84% 4.9%;
-
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-
-  --radius: 0.5rem;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
+/* FullCalendar Overrides */
+.fc {
+  @apply h-full;
+}
 
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
+.fc .fc-toolbar {
+  @apply flex-wrap gap-4 !important;
+}
 
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+.fc .fc-toolbar-title {
+  @apply text-xl font-semibold !important;
+}
 
-  --primary: 210 93% 48%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+.fc .fc-button {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 !important;
+  @apply border-0 rounded-md px-4 py-2 font-medium !important;
+  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 !important;
+}
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  @apply bg-primary/90 !important;
+}
 
-  --accent: 160 94% 45%;
-  --accent-foreground: 210 40% 98%;
+.fc .fc-button:disabled {
+  @apply opacity-50 cursor-not-allowed !important;
+}
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+.fc .fc-daygrid-day.fc-day-today,
+.fc .fc-timegrid-col.fc-day-today {
+  @apply bg-accent/30 !important;
+}
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+.fc .fc-event {
+  @apply cursor-pointer border border-primary bg-primary text-primary-foreground !important;
+  @apply hover:bg-primary/90 transition-colors duration-200 !important;
+}
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
+.fc .fc-event-main {
+  @apply p-2 !important;
+}
+
+.fc .fc-event-title {
+  @apply font-medium !important;
+}
+
+.fc .fc-timegrid-slot {
+  @apply h-12 !important;
+}
+
+.fc .fc-timegrid-slot-label {
+  @apply text-muted-foreground !important;
+}
+
+.fc .fc-timegrid-axis {
+  @apply text-muted-foreground !important;
+}
+
+.fc .fc-col-header-cell {
+  @apply bg-muted/50 !important;
+}
+
+.fc .fc-scrollgrid {
+  @apply border-border !important;
+}
+
+.fc td, .fc th {
+  @apply border-border !important;
 }
