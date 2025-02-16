@@ -1,1 +1,33 @@
-404: Not Found
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Elements -->
+  <rect width="800" height="600" fill="#F8FAFC" />
+  <circle cx="400" cy="300" r="250" fill="#F1F5F9" />
+  
+  <!-- Form Card -->
+  <rect x="250" y="150" width="300" height="300" rx="16" fill="white" stroke="#E2E8F0" stroke-width="2"/>
+  
+  <!-- Form Elements -->
+  <rect x="270" y="180" width="260" height="40" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="270" y="240" width="260" height="40" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="270" y="300" width="260" height="40" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  
+  <!-- Submit Button -->
+  <rect x="270" y="360" width="260" height="50" rx="8" fill="#3B82F6"/>
+  <text x="360" y="392" fill="white" font-family="Arial" font-size="16" font-weight="bold">Register</text>
+  
+  <!-- Form Labels -->
+  <text x="270" y="170" fill="#1E293B" font-family="Arial" font-size="14">Full Name</text>
+  <text x="270" y="230" fill="#1E293B" font-family="Arial" font-size="14">Email</text>
+  <text x="270" y="290" fill="#1E293B" font-family="Arial" font-size="14">Password</text>
+  
+  <!-- Decorative Elements -->
+  <circle cx="600" cy="150" r="30" fill="#3B82F6" fill-opacity="0.1"/>
+  <circle cx="200" cy="450" r="40" fill="#3B82F6" fill-opacity="0.1"/>
+  <circle cx="650" cy="400" r="25" fill="#3B82F6" fill-opacity="0.1"/>
+  
+  <!-- Additional Decorative Shapes -->
+  <rect x="180" y="200" width="40" height="40" rx="8" fill="#3B82F6" fill-opacity="0.1"/>
+  <rect x="580" y="350" width="40" height="40" rx="8" fill="#3B82F6" fill-opacity="0.1"/>
+  <circle cx="150" cy="350" r="20" fill="#3B82F6" fill-opacity="0.1"/>
+</svg>

@@ -8,4 +8,7 @@ export const load: PageLoad = async () => {
         console.error('OAuth callback error:', error);
         // The error will be handled by the page component
     }
-}; 
+};
+
+export const ssr = false;
+export const prerender = false; 

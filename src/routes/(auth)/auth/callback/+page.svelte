@@ -2,32 +2,38 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { authService } from '$lib/services/auth';
-    import { Card } from '$lib/components/ui/card';
+    import { Loader2 } from 'lucide-svelte';
+    import { goto } from '$app/navigation';
 
     let error: string | null = null;
 
     onMount(async () => {
         try {
             await authService.handleOAuthCallback();
-        } catch (err) {
-            error = 'Failed to complete authentication. Please try again.';
+        } catch (err: any) {
             console.error('OAuth callback error:', err);
+            error = err.message || 'Authentication failed. Please try again.';
+            setTimeout(() => {
+                goto('/login?error=google_auth_failed');
+            }, 2000);
         }
     });
 </script>
 
-<Card class="p-6">
-    <div class="space-y-2 text-center">
-        <h1 class="text-2xl font-bold">Completing Sign In</h1>
-        <p class="text-muted-foreground">Please wait while we complete your authentication...</p>
-    </div>
-
-    {#if error}
-        <div class="mt-4 p-4 text-sm text-red-600 bg-red-50 rounded-md dark:bg-red-900/50 dark:text-red-100">
-            {error}
-            <div class="mt-2">
-                <a href="/login" class="text-primary hover:underline">Return to login</a>
+<div class="min-h-screen bg-background flex items-center justify-center">
+    <div class="w-full max-w-md p-8 space-y-4 text-center">
+        {#if error}
+            <div class="space-y-2">
+                <h2 class="text-lg font-semibold text-red-600">Authentication Failed</h2>
+                <p class="text-sm text-muted-foreground">{error}</p>
+                <p class="text-sm text-muted-foreground">Redirecting back to login...</p>
             </div>
-        </div>
-    {/if}
-</Card> 
+        {:else}
+            <div class="space-y-4">
+                <Loader2 class="w-8 h-8 animate-spin mx-auto text-primary" />
+                <h2 class="text-lg font-semibold">Completing Authentication</h2>
+                <p class="text-sm text-muted-foreground">Please wait while we set up your account...</p>
+            </div>
+        {/if}
+    </div>
+</div> 

@@ -9,6 +9,11 @@ import { USER_ROLES, ROUTES } from '$lib/config';
 export class AuthService {
     async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<User> {
         try {
+            // Validate inputs
+            if (!email || !password || !name || !role) {
+                throw new Error('All fields are required');
+            }
+
             // Create account in Appwrite
             const accountResponse = await account.create(
                 ID.unique(),
@@ -17,24 +22,39 @@ export class AuthService {
                 name
             );
 
-            // Create user document in database
-            const user = await databases.createDocument(
-                DB_CONFIG.databaseId,
-                DB_CONFIG.collections.USERS,
-                accountResponse.$id,
-                {
-                    userId: accountResponse.$id,
-                    email,
-                    name,
-                    role,
-                    availability: []
+            if (!accountResponse || !accountResponse.$id) {
+                throw new Error('Failed to create account');
+            }
+
+            try {
+                // Create user document in database
+                const user = await databases.createDocument(
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.USERS,
+                    accountResponse.$id,
+                    {
+                        userId: accountResponse.$id,
+                        email,
+                        name,
+                        role,
+                        availability: []
+                    }
+                );
+
+                // Automatically log in after registration
+                await this.login(email, password);
+
+                return user as User;
+            } catch (dbError) {
+                // If database creation fails, clean up the account
+                try {
+                    await account.deleteSession('current');
+                    await account.deleteSessions();
+                } catch (cleanupError) {
+                    console.error('Cleanup error:', cleanupError);
                 }
-            );
-
-            // Automatically log in after registration
-            await this.login(email, password);
-
-            return user as User;
+                throw dbError;
+            }
         } catch (error) {
             console.error('Registration error:', error);
             throw handleAppwriteError(error);
@@ -75,15 +95,19 @@ export class AuthService {
 
     async loginWithGoogle(): Promise<void> {
         try {
-            const redirectUrl = window.location.origin + '/auth/callback';
-            const failureUrl = window.location.origin + '/login';
-            
-            // Create OAuth2 session
-            account.createOAuth2Session(
+            const successUrl = window.location.hostname === 'localhost' 
+                ? 'http://localhost:5173/(auth)/auth/callback'
+                : `${window.location.origin}/(auth)/auth/callback`;
+            const failureUrl = window.location.hostname === 'localhost'
+                ? 'http://localhost:5173/login?error=google_auth_failed'
+                : `${window.location.origin}/login?error=google_auth_failed`;
+
+            // Create OAuth2 session with proper redirect URLs
+            await account.createOAuth2Session(
                 'google',
-                redirectUrl,
+                successUrl,
                 failureUrl,
-                ['profile', 'email']
+                ['openid', 'email', 'profile']
             );
         } catch (error) {
             console.error('Google login error:', error);
@@ -93,17 +117,24 @@ export class AuthService {
 
     async handleOAuthCallback(): Promise<void> {
         try {
-            // Get the current session
-            const session = await account.getSession('current');
+            // Get the current session and account details
+            const [session, accountDetails] = await Promise.all([
+                account.getSession('current'),
+                account.get()
+            ]).catch(error => {
+                console.error('Failed to get session or account:', error);
+                throw new Error('Authentication failed. Please try again.');
+            });
             
-            // Get account details
-            const accountDetails = await account.get();
+            if (!session || !accountDetails) {
+                throw new Error('Authentication session not found');
+            }
             
             // Check if user exists in database
             let user = await this.getUserByEmail(accountDetails.email);
             
             if (!user) {
-                // Create new user document
+                // Create new user document with default role as STUDENT
                 user = await databases.createDocument(
                     DB_CONFIG.databaseId,
                     DB_CONFIG.collections.USERS,
@@ -116,6 +147,10 @@ export class AuthService {
                         availability: []
                     }
                 ) as User;
+
+                if (!user) {
+                    throw new Error('Failed to create user profile');
+                }
             }
             
             userStore.set(user);
@@ -133,6 +168,12 @@ export class AuthService {
             }
         } catch (error) {
             console.error('OAuth callback error:', error);
+            // Clean up the session if something goes wrong
+            try {
+                await account.deleteSession('current');
+            } catch (cleanupError) {
+                console.error('Session cleanup error:', cleanupError);
+            }
             throw handleAppwriteError(error);
         }
     }
