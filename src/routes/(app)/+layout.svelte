@@ -1,135 +1,138 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { authStore } from '$lib/stores/auth';
-  import * as Icons from 'lucide-svelte';
-  import { Button } from '$lib/components/ui/button';
-  import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-  } from '$lib/components/ui/dropdown-menu';
-  import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
-  import { cn } from '$lib/utils';
+  import { userStore } from '$lib/stores/user';
+  import { ROUTES, USER_ROLES } from '$lib/config';
+  import { Calendar, Users, Building2, Settings, UserCircle } from 'lucide-svelte';
+  import ThemeToggle from '$lib/components/theme/ThemeToggle.svelte';
+  import MobileNav from '$lib/components/navigation/MobileNav.svelte';
 
-  const navigation = [
-    { name: 'Schedule', href: '/schedule', icon: Icons.Calendar },
-    { name: 'Rooms', href: '/rooms', icon: Icons.Building2 },
-    { name: 'Profile', href: '/profile', icon: Icons.User },
+  const mainNavigation = [
+    {
+      title: 'Dashboard',
+      href: $userStore?.role === USER_ROLES.ADMIN 
+        ? ROUTES.ADMIN_DASHBOARD 
+        : $userStore?.role === USER_ROLES.TEACHER 
+          ? ROUTES.TEACHER_DASHBOARD 
+          : ROUTES.STUDENT_DASHBOARD,
+      icon: Calendar,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    },
+    {
+      title: 'Teachers',
+      href: ROUTES.TEACHERS,
+      icon: Users,
+      roles: [USER_ROLES.ADMIN]
+    },
+    {
+      title: 'Students',
+      href: ROUTES.STUDENTS,
+      icon: Users,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
+    },
+    {
+      title: 'Rooms',
+      href: ROUTES.ROOMS,
+      icon: Building2,
+      roles: [USER_ROLES.ADMIN]
+    },
+    {
+      title: 'Availability',
+      href: ROUTES.AVAILABILITY,
+      icon: Calendar,
+      roles: [USER_ROLES.TEACHER]
+    }
   ];
 
-  const teacherNavigation = [
-    { name: 'Availability', href: '/availability', icon: Icons.Clock },
+  const userNavigation = [
+    {
+      title: 'Profile',
+      href: ROUTES.PROFILE,
+      icon: UserCircle,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    },
+    {
+      title: 'Settings',
+      href: ROUTES.SETTINGS,
+      icon: Settings,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    }
   ];
 
-  const adminNavigation = [
-    { name: 'Admin', href: '/admin', icon: Icons.Settings },
-  ];
+  $: filteredMainNavigation = mainNavigation.filter(
+    (item) => item.roles.includes($userStore?.role || '')
+  );
+
+  $: filteredUserNavigation = userNavigation.filter(
+    (item) => item.roles.includes($userStore?.role || '')
+  );
 
   $: currentPath = $page.url.pathname;
 </script>
 
-<div class="min-h-screen bg-background">
-  <!-- Top Navigation -->
-  <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <div class="container flex h-14 items-center">
-      <a href="/" class="mr-6 flex items-center space-x-2">
-        <span class="font-bold text-primary">TimetablePro</span>
-      </a>
-
-      <nav class="flex items-center space-x-6 text-sm font-medium">
-        {#each navigation as item}
+<div class="flex h-screen">
+  <!-- Sidebar -->
+  <aside class="fixed inset-y-0 flex-col hidden w-64 h-full lg:flex">
+    <div class="flex flex-col flex-grow px-6 border-r border-border bg-card">
+      <div class="flex items-center justify-between h-16">
+        <span class="text-xl font-semibold">TimeTablePro</span>
+        <ThemeToggle />
+      </div>
+      <nav class="flex-1 pt-4 space-y-1">
+        {#each filteredMainNavigation as item}
           <a
             href={item.href}
-            class={cn(
-              "transition-colors hover:text-foreground/80",
-              currentPath === item.href ? "text-foreground" : "text-foreground/60"
-            )}
+            class="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors {currentPath === item.href ? 'bg-primary/10' : ''}"
+            class:text-primary={currentPath === item.href}
+            class:text-muted-foreground={currentPath !== item.href}
+            class:hover:bg-accent={currentPath !== item.href}
+            class:hover:text-accent-foreground={currentPath !== item.href}
           >
-            {item.name}
+            <svelte:component
+              this={item.icon}
+              class="w-5 h-5 mr-3"
+            />
+            {item.title}
           </a>
         {/each}
-
-        {#if $authStore.user?.role === 'teacher'}
-          {#each teacherNavigation as item}
-            <a
-              href={item.href}
-              class={cn(
-                "transition-colors hover:text-foreground/80",
-                currentPath === item.href ? "text-foreground" : "text-foreground/60"
-              )}
-            >
-              {item.name}
-            </a>
-          {/each}
-        {/if}
-
-        {#if $authStore.user?.role === 'admin'}
-          {#each adminNavigation as item}
-            <a
-              href={item.href}
-              class={cn(
-                "transition-colors hover:text-foreground/80",
-                currentPath === item.href ? "text-foreground" : "text-foreground/60"
-              )}
-            >
-              {item.name}
-            </a>
-          {/each}
-        {/if}
       </nav>
-
-      <div class="flex flex-1 items-center justify-end space-x-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" class="relative h-8 w-8 rounded-full">
-              <Avatar class="h-8 w-8">
-                <AvatarFallback>
-                  {$authStore.user?.email?.[0].toUpperCase() ?? 'U'}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent class="w-56" align="end" forceMount>
-            <DropdownMenuLabel class="font-normal">
-              <div class="flex flex-col space-y-1">
-                <p class="text-sm font-medium leading-none">{$authStore.user?.email}</p>
-                <p class="text-xs leading-none text-muted-foreground">
-                  {$authStore.user?.role}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/profile">
-                <Icons.User class="mr-2 h-4 w-4" />
-                Profile
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="/settings">
-                <Icons.Settings class="mr-2 h-4 w-4" />
-                Settings
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              class="text-red-600 focus:bg-red-50 focus:text-red-600"
-              on:click={() => authStore.logout()}
-            >
-              <Icons.LogOut class="mr-2 h-4 w-4" />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div class="flex flex-col gap-1 pb-4">
+        {#each filteredUserNavigation as item}
+          <a
+            href={item.href}
+            class="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors {currentPath === item.href ? 'bg-primary/10' : ''}"
+            class:text-primary={currentPath === item.href}
+            class:text-muted-foreground={currentPath !== item.href}
+            class:hover:bg-accent={currentPath !== item.href}
+            class:hover:text-accent-foreground={currentPath !== item.href}
+          >
+            <svelte:component
+              this={item.icon}
+              class="w-5 h-5 mr-3"
+            />
+            {item.title}
+          </a>
+        {/each}
       </div>
     </div>
-  </header>
+  </aside>
 
-  <!-- Main Content -->
-  <main class="container py-8">
-    <slot />
+  <!-- Mobile header -->
+  <div class="fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-16 px-4 border-b lg:hidden border-border bg-card">
+    <span class="text-xl font-semibold">TimeTablePro</span>
+    <div class="flex items-center gap-2">
+      <ThemeToggle />
+      <MobileNav
+        {mainNavigation}
+        {userNavigation}
+        {currentPath}
+      />
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <main class="flex-1 lg:pl-64">
+    <div class="h-full px-4 py-8 lg:px-8">
+      <slot />
+    </div>
   </main>
-</div> 
+</div>

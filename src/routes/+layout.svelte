@@ -1,95 +1,111 @@
 <script lang="ts">
 	import '../app.css';
+	import { userStore } from '$lib/stores/userStore';
 	import { onMount } from 'svelte';
-	import { authStore } from '$lib/stores/auth';
-	import { checkSession } from '$lib/services/auth';
+	import { authService } from '$lib/services/auth';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { ROUTES, USER_ROLES } from '$lib/config';
+	import NotificationBell from '$lib/components/NotificationBell.svelte';
+
+	// Protected routes configuration
+	const protectedRoutes = [
+		'/admin',
+		'/teacher',
+		'/student',
+		'/rooms',
+		'/schedules',
+		'/profile'
+	];
+
+	const roleBasedRoutes = {
+		[USER_ROLES.ADMIN]: ['/admin', '/rooms', '/schedules'],
+		[USER_ROLES.TEACHER]: ['/teacher', '/schedules'],
+		[USER_ROLES.STUDENT]: ['/student', '/schedules']
+	};
+
+	onMount(async () => {
+		const user = await authService.getCurrentUser();
+		if (user) {
+			userStore.set(user);
+		}
+	});
+
+	$: if ($page.url.pathname !== '/') {
+		handleRouteProtection($page.url.pathname, $userStore);
+	}
+
+	function handleRouteProtection(path: string, user: any) {
+		// Allow public routes
+		if (!protectedRoutes.some(route => path.startsWith(route))) {
+			return;
+		}
+
+		// Redirect to login if not authenticated
+		if (!user) {
+			goto(ROUTES.LOGIN);
+			return;
+		}
+
+		// Check role-based access
+		const allowedRoutes = roleBasedRoutes[user.role] || [];
+		if (!allowedRoutes.some(route => path.startsWith(route))) {
+			// Redirect to appropriate dashboard
+			switch (user.role) {
+				case USER_ROLES.ADMIN:
+					goto(ROUTES.ADMIN_DASHBOARD);
+					break;
+				case USER_ROLES.TEACHER:
+					goto(ROUTES.TEACHER_DASHBOARD);
+					break;
+				case USER_ROLES.STUDENT:
+					goto(ROUTES.STUDENT_DASHBOARD);
+					break;
+				default:
+					goto(ROUTES.LOGIN);
+			}
+		}
+	}
 </script>
 
-<div class="app">
-	{#if $page.url.pathname !== '/'}
-		<header class="border-b">
-			<nav class="container mx-auto px-4 py-4 flex items-center justify-between">
-				<a href="/" class="text-2xl font-bold text-primary">TimetablePro</a>
-				
-				{#if $authStore.user}
-					<div class="flex items-center gap-4">
-						{#if $authStore.user.role === 'admin'}
-							<a href="/admin" class="text-muted-foreground hover:text-primary">Admin</a>
-						{/if}
-						<a href="/schedule" class="text-muted-foreground hover:text-primary">Schedule</a>
-						<a href="/rooms" class="text-muted-foreground hover:text-primary">Rooms</a>
-						{#if $authStore.user.role === 'teacher'}
-							<a href="/availability" class="text-muted-foreground hover:text-primary">Availability</a>
-						{/if}
-						<a href="/profile" class="text-muted-foreground hover:text-primary">Profile</a>
-						<button 
-							on:click={() => authStore.logout()}
-							class="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
-						>
-							Logout
-						</button>
-					</div>
-				{:else}
-					<div class="flex items-center gap-4">
-						<a 
-							href="/login"
-							class="px-4 py-2 text-muted-foreground hover:text-primary"
-						>
-							Login
-						</a>
-						<a 
-							href="/register"
-							class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-						>
-							Register
-						</a>
-					</div>
-				{/if}
-			</nav>
+<div class="min-h-screen bg-background text-foreground">
+	{#if $userStore}
+		<header class="border-b border-border">
+			<div class="container flex items-center justify-between px-4 py-4 mx-auto">
+				<nav class="flex items-center space-x-6">
+					<a href="/" class="text-lg font-semibold">TimeTablePro</a>
+					{#if $userStore.role === 'admin'}
+						<a href="/admin" class="hover:text-primary">Admin</a>
+					{:else if $userStore.role === 'teacher'}
+						<a href="/teacher" class="hover:text-primary">Dashboard</a>
+					{:else}
+						<a href="/student" class="hover:text-primary">Dashboard</a>
+					{/if}
+				</nav>
+				<div class="flex items-center space-x-4">
+					<NotificationBell />
+					<button
+						class="text-sm hover:text-primary"
+						on:click={() => authService.logout()}
+					>
+						Logout
+					</button>
+				</div>
+			</div>
 		</header>
 	{/if}
-
-	<main class="{$page.url.pathname === '/' ? 'w-full p-0' : 'container mx-auto px-4 py-8'}">
+	
+	<main>
 		<slot />
 	</main>
-
-	{#if $page.url.pathname !== '/'}
-		<footer class="border-t mt-auto">
-			<div class="container mx-auto px-4 py-6 text-center text-muted-foreground">
-				© 2024 TimetablePro. All rights reserved.
-			</div>
-		</footer>
-	{/if}
 </div>
 
 <style>
-	:global(*) {
-		margin: 0;
-		padding: 0;
-		box-sizing: border-box;
+	:global(body) {
+		@apply bg-background text-foreground antialiased;
 	}
 
-	:global(html), :global(body) {
-		width: 100%;
-		min-height: 100vh;
-		margin: 0;
-		padding: 0;
-		overflow-x: hidden;
-	}
-
-	.app {
-		display: flex;
-		flex-direction: column;
-		min-height: 100vh;
-		width: 100%;
-		margin: 0;
-		padding: 0;
-	}
-
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
+	:global(.dark) {
+		color-scheme: dark;
 	}
 </style>

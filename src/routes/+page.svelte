@@ -5,6 +5,23 @@
   import { Card } from '$lib/components/ui/card';
   import { Avatar } from '$lib/components/ui/avatar';
   import { Badge } from '$lib/components/ui/badge';
+  import { userStore } from '$lib/stores/userStore';
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
+  import { USER_ROLES } from '$lib/config';
+
+  onMount(() => {
+    if ($userStore) {
+      const role = $userStore.role;
+      if (role === USER_ROLES.ADMIN) {
+        goto('/admin');
+      } else if (role === USER_ROLES.TEACHER) {
+        goto('/teacher');
+      } else {
+        goto('/student');
+      }
+    }
+  });
 </script>
 
 <div class="flex flex-col min-h-screen bg-gradient-to-b from-primary-50 to-white">
@@ -44,7 +61,7 @@
             </div>
           </div>
           <div class="relative">
-            <div class="absolute -inset-4 bg-gradient-to-r from-primary-200/20 to-accent-200/20 rounded-lg blur-3xl" />
+            <div class="absolute -inset-4 bg-gradient-to-r from-primary-200/20 to-accent-200/20 rounded-lg blur-3xl"></div>
             <img
               src="/hero-illustration.svg"
               alt="TimetablePro Illustration"

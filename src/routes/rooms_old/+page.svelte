@@ -138,7 +138,7 @@
 </script>
 
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold">Rooms</h1>
         {#if $authStore.user?.role === 'admin'}
             <Dialog bind:open={showDialog} on:close={resetForm}>
@@ -232,7 +232,7 @@
             <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div class="space-y-2">
                     <Label for="filterType">Room Type</Label>
                     <select
@@ -273,13 +273,13 @@
     </Card>
 
     {#if loading}
-        <div class="text-center py-8">Loading rooms...</div>
+        <div class="py-8 text-center">Loading rooms...</div>
     {:else if rooms.length === 0}
-        <div class="text-center py-8 text-muted-foreground">
+        <div class="py-8 text-center text-muted-foreground">
             No rooms found. {#if $authStore.user?.role === 'admin'}Add a room to get started.{/if}
         </div>
     {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {#each rooms as room}
                 <Card>
                     <CardHeader>

@@ -1,206 +1,113 @@
-                name="password"
-                type="password"
-                required
 <!-- src/routes/(auth)/login/+page.svelte -->
 <script lang="ts">
-    import { login } from '$lib/services/auth';
-    import { goto } from '$app/navigation';
-    import { page } from '$app/stores';
-    import { authStore } from '$lib/stores/auth';
+    import { authService } from '$lib/services/auth';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
-    import { Alert, AlertDescription } from '$lib/components/ui/alert';
+    import { Card } from '$lib/components/ui/card';
     import { Separator } from '$lib/components/ui/separator';
-    import { Checkbox } from '$lib/components/ui/checkbox';
-    import * as Icons from 'lucide-svelte';
-    import { fade } from 'svelte/transition';
-    import { cn } from '$lib/utils';
 
+    let email = '';
+    let password = '';
     let loading = false;
-    let showPassword = false;
-    let rememberMe = false;
-    let formData = {
-        email: '',
-        password: ''
-    };
-
-    let errors = {
-        email: '',
-        password: ''
-    };
-
-    function validateForm() {
-        let isValid = true;
-        errors = {
-            email: '',
-            password: ''
-        };
-
-        if (!formData.email.trim()) {
-            errors.email = 'Email is required';
-            isValid = false;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            errors.email = 'Please enter a valid email';
-            isValid = false;
-        }
-
-        if (!formData.password) {
-            errors.password = 'Password is required';
-            isValid = false;
-        }
-
-        return isValid;
-    }
+    let error: string | null = null;
 
     async function handleSubmit() {
-        if (loading) return;
-        
-        if (!validateForm()) return;
-        
+        loading = true;
+        error = null;
+
         try {
-            loading = true;
-            await login(formData.email, formData.password);
-            const redirectTo = $page.url.searchParams.get('redirect') || '/schedule';
-            goto(redirectTo);
-        } catch (error) {
+            await authService.login(email, password);
+        } catch (err) {
+            error = 'Invalid email or password';
+            console.error('Login error:', err);
+        } finally {
             loading = false;
         }
     }
 
-    function handleGoogleLogin() {
-        // TODO: Implement Google login
+    async function handleGoogleLogin() {
+        loading = true;
+        error = null;
+
+        try {
+            await authService.loginWithGoogle();
+        } catch (err) {
+            error = 'Google login failed. Please try again.';
+            console.error('Google login error:', err);
+        } finally {
+            loading = false;
+        }
     }
 </script>
 
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-        <div class="text-center">
-            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
-                Welcome back
-            </h2>
-            <p class="mt-2 text-sm text-gray-600">
-                Sign in to your account to continue
-            </p>
-        </div>
-
-        <div class="grid gap-6">
-            <!-- Social Sign In -->
-            <Button 
-                variant="outline" 
-                class="relative w-full bg-background hover:bg-accent/5" 
-                on:click={handleGoogleLogin}
-                disabled={loading}
-            >
-                <Icons.Chrome class="mr-2 h-4 w-4" />
-                Continue with Google
-            </Button>
-            
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center">
-                    <Separator class="w-full" />
-                </div>
-                <div class="relative flex justify-center text-xs uppercase">
-                    <span class="bg-background px-2 text-muted-foreground">or continue with email</span>
-                </div>
-            </div>
-
-            <form on:submit|preventDefault={handleSubmit} class="grid gap-4">
-                {#if $authStore.error}
-                    <div transition:fade>
-                        <Alert variant="destructive">
-                            <Icons.AlertCircle class="h-4 w-4" />
-                            <AlertDescription>{$authStore.error}</AlertDescription>
-                        </Alert>
-                    </div>
-                {/if}
-
-                <div class="grid gap-2">
-                    <Label for="email">Email</Label>
-                    <Input
-                        type="email"
-                        id="email"
-                        bind:value={formData.email}
-                        required
-                        disabled={loading}
-                        placeholder="name@example.com"
-                        autocomplete="email"
-                        class={cn(errors.email && "border-destructive")}
-                    />
-                    {#if errors.email}
-                        <p class="text-xs text-destructive" transition:fade>{errors.email}</p>
-                    {/if}
-                </div>
-
-                <div class="grid gap-2">
-                    <div class="flex items-center justify-between">
-                        <Label for="password">Password</Label>
-                        <a 
-                            href="/forgot-password" 
-                            class="text-sm font-medium text-primary hover:underline"
-                        >
-                            Forgot password?
-                        </a>
-                    </div>
-                    <div class="relative">
-                        <Input
-                            type={showPassword ? "text" : "password"}
-                            id="password"
-                            bind:value={formData.password}
-                            required
-                            disabled={loading}
-                            autocomplete="current-password"
-                            class={cn("pr-10", errors.password && "border-destructive")}
-                        />
-                        <button
-                            type="button"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            on:click={() => showPassword = !showPassword}
-                            tabindex="-1"
-                        >
-                            {#if showPassword}
-                                <Icons.EyeOff class="h-4 w-4" />
-                            {:else}
-                                <Icons.Eye class="h-4 w-4" />
-                            {/if}
-                        </button>
-                    </div>
-                    {#if errors.password}
-                        <p class="text-xs text-destructive" transition:fade>{errors.password}</p>
-                    {/if}
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <Checkbox id="remember" bind:checked={rememberMe} />
-                    <label
-                        for="remember"
-                        class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        Remember me
-                    </label>
-                </div>
-
-                <Button type="submit" disabled={loading} class="w-full">
-                    {#if loading}
-                        <Icons.Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                    {:else}
-                        Sign in
-                    {/if}
-                </Button>
-            </form>
-
-            <div class="text-center text-sm">
-                <span class="text-muted-foreground">
-                    Don't have an account?{" "}
-                </span>
-                <a href="/register" class="font-medium text-primary hover:underline">
-                    Create an account
-                </a>
-            </div>
-        </div>
+<Card class="p-6">
+    <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-bold">Welcome Back</h1>
+        <p class="text-muted-foreground">Enter your credentials to access your account</p>
     </div>
-</div>
+
+    {#if error}
+        <div class="mt-4 p-4 text-sm text-red-600 bg-red-50 rounded-md dark:bg-red-900/50 dark:text-red-100">
+            {error}
+        </div>
+    {/if}
+
+    <form on:submit|preventDefault={handleSubmit} class="space-y-4 mt-4">
+        <div class="space-y-2">
+            <Label for="email">Email</Label>
+            <Input
+                type="email"
+                id="email"
+                placeholder="Enter your email"
+                bind:value={email}
+                required
+            />
+        </div>
+        
+        <div class="space-y-2">
+            <Label for="password">Password</Label>
+            <Input
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                bind:value={password}
+                required
+            />
+        </div>
+
+        <Button type="submit" class="w-full" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+        </Button>
+
+        <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+                <span class="w-full border-t" />
+            </div>
+            <div class="relative flex justify-center text-xs uppercase">
+                <span class="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+        </div>
+
+        <Button
+            type="button"
+            variant="outline"
+            class="w-full"
+            on:click={handleGoogleLogin}
+            disabled={loading}
+        >
+            <svg class="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+            </svg>
+            Sign in with Google
+        </Button>
+    </form>
+
+    <div class="mt-4 text-center text-sm">
+        <span class="text-muted-foreground">Don't have an account?</span>
+        <a href="/register" class="text-primary hover:underline">Register</a>
+    </div>
+</Card>
 
 <footer class="absolute bottom-0 w-full py-6 text-center text-sm text-gray-500">
     © {new Date().getFullYear()} TimetablePro. All rights reserved.
