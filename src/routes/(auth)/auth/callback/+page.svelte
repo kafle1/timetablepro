@@ -5,12 +5,19 @@
     import { Loader2 } from 'lucide-svelte';
     import { goto } from '$app/navigation';
     import { ROUTES } from '$lib/config';
+    import { authStore } from '$lib/stores/auth';
 
     let error: string | null = null;
 
     onMount(async () => {
         try {
             await authService.handleOAuthCallback();
+            const user = await authService.getCurrentUser();
+            if (user) {
+                await authStore.redirectToDashboard(user);
+            } else {
+                throw new Error('Failed to get user after OAuth callback');
+            }
         } catch (err) {
             console.error('OAuth callback error:', err);
             error = err instanceof Error ? err.message : 'Authentication failed';

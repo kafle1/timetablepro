@@ -1,14 +1,12 @@
 import { account, databases, DB_CONFIG } from '$lib/config/appwrite';
 import { ID, Query, Permission, Role } from 'appwrite';
 import type { User } from '$lib/types';
-import { goto } from '$app/navigation';
-import { userStore } from '$lib/stores/userStore';
 import { handleAppwriteError } from '$lib/utils/error';
-import { USER_ROLES, ROUTES } from '$lib/config';
+import { USER_ROLES } from '$lib/config';
 import { authStore } from '$lib/stores/auth';
 
 export class AuthService {
-    async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<User> {
+    async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<void> {
         try {
             // Enhanced validation
             if (!email?.trim() || !password?.trim() || !name?.trim() || !role) {
@@ -16,52 +14,7 @@ export class AuthService {
                 throw new Error('All fields are required');
             }
 
-            // Create account in Appwrite
-            const accountResponse = await account.create(
-                ID.unique(),
-                email.trim(),
-                password,
-                name.trim()
-            );
-
-            if (!accountResponse || !accountResponse.$id) {
-                throw new Error('Failed to create account');
-            }
-
-            try {
-                // Create user document in database with proper permissions
-                const user = await databases.createDocument(
-                    DB_CONFIG.databaseId,
-                    DB_CONFIG.collections.USERS,
-                    accountResponse.$id,
-                    {
-                        userId: accountResponse.$id,
-                        email: email.trim(),
-                        name: name.trim(),
-                        role,
-                        availability: []
-                    },
-                    [
-                        Permission.read(Role.any()),
-                        Permission.update(Role.user(accountResponse.$id)),
-                        Permission.delete(Role.user(accountResponse.$id))
-                    ]
-                ) as User;
-
-                // Automatically log in after registration
-                await this.login(email, password);
-                return user;
-            } catch (dbError) {
-                console.error('Database error during registration:', dbError);
-                // If database creation fails, clean up the account and sessions
-                try {
-                    await account.deleteSession('current');
-                    await account.deleteSessions();
-                } catch (cleanupError) {
-                    console.error('Cleanup error:', cleanupError);
-                }
-                throw dbError;
-            }
+            await authStore.register(email.trim(), password, name.trim(), role);
         } catch (error) {
             console.error('Registration error:', error);
             throw handleAppwriteError(error);
@@ -70,16 +23,7 @@ export class AuthService {
 
     async login(email: string, password: string): Promise<void> {
         try {
-            await account.createEmailSession(email, password);
-            const accountDetails = await account.get();
-            const user = await this.getUserByEmail(accountDetails.email);
-            
-            if (!user) {
-                throw new Error('User not found in database');
-            }
-
-            authStore.set({ user, loading: false, error: null });
-            this.redirectToDashboard(user);
+            await authStore.login(email, password);
         } catch (error) {
             console.error('Login error:', error);
             throw handleAppwriteError(error);
@@ -96,7 +40,7 @@ export class AuthService {
                 'google',
                 successUrl,
                 failureUrl,
-                ['email', 'profile']  // Request these OAuth scopes
+                ['email', 'profile']
             );
         } catch (error) {
             console.error('Google login error:', error);
@@ -147,7 +91,7 @@ export class AuthService {
             }
             
             authStore.set({ user, loading: false, error: null });
-            this.redirectToDashboard(user);
+            await this.redirectToDashboard(user);
         } catch (error) {
             console.error('OAuth callback error:', error);
             // Clean up the session if something goes wrong
@@ -177,9 +121,7 @@ export class AuthService {
 
     async logout(): Promise<void> {
         try {
-            await account.deleteSession('current');
-            authStore.set({ user: null, loading: false, error: null });
-            goto(ROUTES.LOGIN);
+            await authStore.logout();
         } catch (error) {
             console.error('Logout error:', error);
             throw handleAppwriteError(error);
@@ -188,24 +130,14 @@ export class AuthService {
 
     async getCurrentUser(): Promise<User | null> {
         try {
-            const accountDetails = await account.get();
-            return await this.getUserByEmail(accountDetails.email);
+            return await authStore.checkSession();
         } catch (error) {
             return null;
         }
     }
 
-    private redirectToDashboard(user: User) {
-        switch (user.role) {
-            case USER_ROLES.ADMIN:
-                goto(ROUTES.ADMIN_DASHBOARD);
-                break;
-            case USER_ROLES.TEACHER:
-                goto(ROUTES.TEACHER_DASHBOARD);
-                break;
-            default:
-                goto(ROUTES.STUDENT_DASHBOARD);
-        }
+    private async redirectToDashboard(user: User) {
+        await authStore.redirectToDashboard(user);
     }
 }
 

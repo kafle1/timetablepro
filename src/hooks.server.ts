@@ -1,16 +1,22 @@
-import { account } from '$lib/config/appwrite';
-import type { Handle } from '@sveltejs/kit';
+import { redirect, type Handle } from '@sveltejs/kit';
+import { authService } from '$lib/services/auth';
+import type { User } from '$lib/types';
+
+declare global {
+    namespace App {
+        interface Locals {
+            user: User | null;
+        }
+    }
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
     try {
-        const session = await account.get();
-        event.locals.user = {
-            id: session.$id,
-            email: session.email,
-            name: session.name,
-            role: 'admin' // This should be fetched from your database based on the user's ID
-        };
-    } catch {
+        // Try to get the current user
+        const user = await authService.getCurrentUser();
+        event.locals.user = user;
+    } catch (error) {
+        console.error('Error getting user in hooks:', error);
         event.locals.user = null;
     }
 

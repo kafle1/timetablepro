@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 import { ROUTES } from '$lib/config';
+import { authStore } from '$lib/stores/auth';
+import { get } from 'svelte/store';
 
 export const load: LayoutLoad = async ({ url }) => {
     // List of valid auth routes
@@ -17,5 +19,22 @@ export const load: LayoutLoad = async ({ url }) => {
         throw redirect(307, ROUTES.LOGIN);
     }
 
-    return {};
+    // Get current user state
+    const { user } = get(authStore);
+
+    // If user is already logged in and trying to access auth routes, redirect to appropriate dashboard
+    if (user && url.pathname !== ROUTES.AUTH_CALLBACK) {
+        switch (user.role) {
+            case 'ADMIN':
+                throw redirect(302, ROUTES.ADMIN_DASHBOARD);
+            case 'TEACHER':
+                throw redirect(302, ROUTES.TEACHER_DASHBOARD);
+            default:
+                throw redirect(302, ROUTES.STUDENT_DASHBOARD);
+        }
+    }
+
+    return {
+        user
+    };
 }; 
