@@ -13,7 +13,8 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"init-db": "bun run scripts/init-appwrite.ts",
-		"cleanup-db": "bun run scripts/cleanup-appwrite.ts"
+		"cleanup-db": "bun run scripts/cleanup-appwrite.ts",
+		"init:appwrite": "ts-node scripts/init-appwrite.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",

@@ -1,25 +1,27 @@
 import { account, databases, DB_CONFIG } from '$lib/config/appwrite';
-import { ID, Query } from 'appwrite';
+import { ID, Query, Permission, Role } from 'appwrite';
 import type { User } from '$lib/types';
 import { goto } from '$app/navigation';
 import { userStore } from '$lib/stores/userStore';
 import { handleAppwriteError } from '$lib/utils/error';
 import { USER_ROLES, ROUTES } from '$lib/config';
+import { authStore } from '$lib/stores/auth';
 
 export class AuthService {
     async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<User> {
         try {
-            // Validate inputs
-            if (!email || !password || !name || !role) {
+            // Enhanced validation
+            if (!email?.trim() || !password?.trim() || !name?.trim() || !role) {
+                console.log('Validation failed:', { email, password, name, role });
                 throw new Error('All fields are required');
             }
 
             // Create account in Appwrite
             const accountResponse = await account.create(
                 ID.unique(),
-                email,
+                email.trim(),
                 password,
-                name
+                name.trim()
             );
 
             if (!accountResponse || !accountResponse.$id) {
@@ -27,26 +29,31 @@ export class AuthService {
             }
 
             try {
-                // Create user document in database
+                // Create user document in database with proper permissions
                 const user = await databases.createDocument(
                     DB_CONFIG.databaseId,
                     DB_CONFIG.collections.USERS,
                     accountResponse.$id,
                     {
                         userId: accountResponse.$id,
-                        email,
-                        name,
+                        email: email.trim(),
+                        name: name.trim(),
                         role,
                         availability: []
-                    }
-                );
+                    },
+                    [
+                        Permission.read(Role.any()),
+                        Permission.update(Role.user(accountResponse.$id)),
+                        Permission.delete(Role.user(accountResponse.$id))
+                    ]
+                ) as User;
 
                 // Automatically log in after registration
                 await this.login(email, password);
-
-                return user as User;
+                return user;
             } catch (dbError) {
-                // If database creation fails, clean up the account
+                console.error('Database error during registration:', dbError);
+                // If database creation fails, clean up the account and sessions
                 try {
                     await account.deleteSession('current');
                     await account.deleteSessions();
@@ -63,30 +70,16 @@ export class AuthService {
 
     async login(email: string, password: string): Promise<void> {
         try {
-            // Create email session
             await account.createEmailSession(email, password);
-            
-            // Get account details
             const accountDetails = await account.get();
+            const user = await this.getUserByEmail(accountDetails.email);
             
-            // Fetch user details from database
-            const user = await this.getUserByEmail(email);
-            
-            if (user) {
-                userStore.set(user);
-                
-                // Redirect based on role
-                switch (user.role) {
-                    case USER_ROLES.ADMIN:
-                        goto(ROUTES.ADMIN_DASHBOARD);
-                        break;
-                    case USER_ROLES.TEACHER:
-                        goto(ROUTES.TEACHER_DASHBOARD);
-                        break;
-                    default:
-                        goto(ROUTES.STUDENT_DASHBOARD);
-                }
+            if (!user) {
+                throw new Error('User not found in database');
             }
+
+            authStore.set({ user, loading: false, error: null });
+            this.redirectToDashboard(user);
         } catch (error) {
             console.error('Login error:', error);
             throw handleAppwriteError(error);
@@ -95,46 +88,45 @@ export class AuthService {
 
     async loginWithGoogle(): Promise<void> {
         try {
-            const successUrl = window.location.hostname === 'localhost' 
-                ? 'http://localhost:5173/(auth)/auth/callback'
-                : `${window.location.origin}/(auth)/auth/callback`;
-            const failureUrl = window.location.hostname === 'localhost'
-                ? 'http://localhost:5173/login?error=google_auth_failed'
-                : `${window.location.origin}/login?error=google_auth_failed`;
+            const origin = window.location.origin;
+            const successUrl = `${origin}/auth/callback`;
+            const failureUrl = `${origin}/login?error=google_auth_failed`;
 
-            // Create OAuth2 session with proper redirect URLs
             await account.createOAuth2Session(
                 'google',
                 successUrl,
                 failureUrl,
-                ['openid', 'email', 'profile']
+                ['email', 'profile']  // Request these OAuth scopes
             );
         } catch (error) {
             console.error('Google login error:', error);
+            if (error instanceof Error) {
+                if (error.message.includes('OAuth provider is not configured')) {
+                    throw new Error('Google OAuth is not properly configured. Please check your Appwrite settings.');
+                }
+            }
             throw handleAppwriteError(error);
         }
     }
 
     async handleOAuthCallback(): Promise<void> {
         try {
-            // Get the current session and account details
-            const [session, accountDetails] = await Promise.all([
-                account.getSession('current'),
-                account.get()
-            ]).catch(error => {
-                console.error('Failed to get session or account:', error);
-                throw new Error('Authentication failed. Please try again.');
-            });
-            
-            if (!session || !accountDetails) {
-                throw new Error('Authentication session not found');
+            // Get the current session first
+            const session = await account.getSession('current');
+            if (!session) {
+                throw new Error('No active session found');
             }
-            
-            // Check if user exists in database
+
+            const accountDetails = await account.get();
+            if (!accountDetails || !accountDetails.email) {
+                throw new Error('Failed to get account details');
+            }
+
+            // Get or create user document
             let user = await this.getUserByEmail(accountDetails.email);
             
             if (!user) {
-                // Create new user document with default role as STUDENT
+                // Create new user document with proper permissions
                 user = await databases.createDocument(
                     DB_CONFIG.databaseId,
                     DB_CONFIG.collections.USERS,
@@ -142,30 +134,20 @@ export class AuthService {
                     {
                         userId: accountDetails.$id,
                         email: accountDetails.email,
-                        name: accountDetails.name,
+                        name: accountDetails.name || accountDetails.email.split('@')[0],
                         role: USER_ROLES.STUDENT,
                         availability: []
-                    }
+                    },
+                    [
+                        Permission.read(Role.any()),
+                        Permission.update(Role.user(accountDetails.$id)),
+                        Permission.delete(Role.user(accountDetails.$id))
+                    ]
                 ) as User;
-
-                if (!user) {
-                    throw new Error('Failed to create user profile');
-                }
             }
             
-            userStore.set(user);
-            
-            // Redirect based on role
-            switch (user.role) {
-                case USER_ROLES.ADMIN:
-                    goto(ROUTES.ADMIN_DASHBOARD);
-                    break;
-                case USER_ROLES.TEACHER:
-                    goto(ROUTES.TEACHER_DASHBOARD);
-                    break;
-                default:
-                    goto(ROUTES.STUDENT_DASHBOARD);
-            }
+            authStore.set({ user, loading: false, error: null });
+            this.redirectToDashboard(user);
         } catch (error) {
             console.error('OAuth callback error:', error);
             // Clean up the session if something goes wrong
@@ -183,7 +165,7 @@ export class AuthService {
             const response = await databases.listDocuments(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.USERS,
-                [Query.equal('email', email)]
+                [Query.equal('email', [email])]
             );
             
             return response.documents[0] as User || null;
@@ -196,7 +178,7 @@ export class AuthService {
     async logout(): Promise<void> {
         try {
             await account.deleteSession('current');
-            userStore.set(null);
+            authStore.set({ user: null, loading: false, error: null });
             goto(ROUTES.LOGIN);
         } catch (error) {
             console.error('Logout error:', error);
@@ -209,8 +191,20 @@ export class AuthService {
             const accountDetails = await account.get();
             return await this.getUserByEmail(accountDetails.email);
         } catch (error) {
-            console.error('Get current user error:', error);
             return null;
+        }
+    }
+
+    private redirectToDashboard(user: User) {
+        switch (user.role) {
+            case USER_ROLES.ADMIN:
+                goto(ROUTES.ADMIN_DASHBOARD);
+                break;
+            case USER_ROLES.TEACHER:
+                goto(ROUTES.TEACHER_DASHBOARD);
+                break;
+            default:
+                goto(ROUTES.STUDENT_DASHBOARD);
         }
     }
 }

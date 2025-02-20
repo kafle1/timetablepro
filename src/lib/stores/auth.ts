@@ -1,27 +1,31 @@
 import { writable } from 'svelte/store';
 import { account } from '$lib/config/appwrite';
-import type { Models } from 'appwrite';
+import type { User } from '$lib/types';
 
 interface AuthState {
-    user: Models.User<Models.Preferences> | null;
+    user: User | null;
     loading: boolean;
     error: string | null;
 }
 
-const createAuthStore = () => {
+function createAuthStore() {
     const { subscribe, set, update } = writable<AuthState>({
         user: null,
-        loading: true,
+        loading: false,
         error: null
     });
 
     return {
         subscribe,
+        set,
+        update,
         login: async (email: string, password: string) => {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 await account.createEmailSession(email, password);
-                const user = await account.get();
+                const accountDetails = await account.get();
+                const response = await fetch(`/api/users?email=${accountDetails.email}`);
+                const user = await response.json();
                 set({ user, loading: false, error: null });
             } catch (error) {
                 update(state => ({
@@ -37,7 +41,9 @@ const createAuthStore = () => {
                 update(state => ({ ...state, loading: true, error: null }));
                 await account.create('unique()', email, password, name);
                 await account.createEmailSession(email, password);
-                const user = await account.get();
+                const accountDetails = await account.get();
+                const response = await fetch(`/api/users?email=${accountDetails.email}`);
+                const user = await response.json();
                 set({ user, loading: false, error: null });
             } catch (error) {
                 update(state => ({
@@ -65,7 +71,9 @@ const createAuthStore = () => {
         checkSession: async () => {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
-                const user = await account.get();
+                const accountDetails = await account.get();
+                const response = await fetch(`/api/users?email=${accountDetails.email}`);
+                const user = await response.json();
                 set({ user, loading: false, error: null });
             } catch (error) {
                 set({ user: null, loading: false, error: null });
@@ -86,6 +94,6 @@ const createAuthStore = () => {
             }
         }
     };
-};
+}
 
 export const authStore = createAuthStore(); 

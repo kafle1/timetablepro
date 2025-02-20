@@ -1,6 +1,9 @@
-import { Client, Databases, Storage, Teams } from 'node-appwrite';
+import { Client, Databases } from 'node-appwrite';
+import dotenv from 'dotenv';
 
-if (!process.env.PUBLIC_APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY || !process.env.PUBLIC_APPWRITE_ENDPOINT) {
+dotenv.config();
+
+if (!process.env.VITE_APPWRITE_PROJECT_ID || !process.env.APPWRITE_API_KEY || !process.env.VITE_APPWRITE_ENDPOINT) {
     console.error('Missing required environment variables. Please check your .env file.');
     process.exit(1);
 }
@@ -10,13 +13,11 @@ const client = new Client();
 
 // Configure the client
 client
-    .setEndpoint(process.env.PUBLIC_APPWRITE_ENDPOINT)
-    .setProject(process.env.PUBLIC_APPWRITE_PROJECT_ID)
+    .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT)
+    .setProject(process.env.VITE_APPWRITE_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY);
 
 const databases = new Databases(client);
-const storage = new Storage(client);
-const teams = new Teams(client);
 
 async function cleanupDatabases() {
     try {
@@ -33,42 +34,10 @@ async function cleanupDatabases() {
     }
 }
 
-async function cleanupStorage() {
-    try {
-        const { buckets } = await storage.listBuckets();
-        console.log('Found buckets:', buckets.length);
-        
-        for (const bucket of buckets) {
-            console.log(`Deleting bucket: ${bucket.name} (${bucket.$id})`);
-            await storage.deleteBucket(bucket.$id);
-        }
-        console.log('All buckets deleted');
-    } catch (error) {
-        console.error('Error cleaning up storage:', error);
-    }
-}
-
-async function cleanupTeams() {
-    try {
-        const { teams: teamsList } = await teams.list();
-        console.log('Found teams:', teamsList.length);
-        
-        for (const team of teamsList) {
-            console.log(`Deleting team: ${team.name} (${team.$id})`);
-            await teams.delete(team.$id);
-        }
-        console.log('All teams deleted');
-    } catch (error) {
-        console.error('Error cleaning up teams:', error);
-    }
-}
-
 async function main() {
     try {
         console.log('Starting cleanup...');
         await cleanupDatabases();
-        await cleanupStorage();
-        await cleanupTeams();
         console.log('Cleanup completed successfully');
     } catch (error) {
         console.error('Cleanup failed:', error);

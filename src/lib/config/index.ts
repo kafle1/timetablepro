@@ -141,6 +141,7 @@ export const ROUTES = {
     HOME: '/',
     LOGIN: '/login',
     REGISTER: '/register',
+    AUTH_CALLBACK: '/auth/callback',
 
     // Dashboard routes
     ADMIN_DASHBOARD: '/admin/dashboard',

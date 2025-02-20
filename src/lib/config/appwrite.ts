@@ -8,25 +8,16 @@ const createClient = () => {
         const endpoint = import.meta.env.VITE_APPWRITE_ENDPOINT;
         const projectId = import.meta.env.VITE_APPWRITE_PROJECT_ID;
 
-        if (typeof endpoint === 'string' && endpoint) {
-            client.setEndpoint(endpoint);
-        } else {
-            client.setEndpoint('https://cloud.appwrite.io/v1');
+        if (!endpoint || !projectId) {
+            throw new Error('Missing Appwrite configuration');
         }
 
-        if (typeof projectId === 'string' && projectId) {
-            client.setProject(projectId);
-        } else {
-            client.setProject('default');
-        }
-
+        client.setEndpoint(endpoint);
+        client.setProject(projectId);
         return client;
     } catch (error) {
         console.error('Error initializing Appwrite client:', error);
-        // Return a client with default configuration
-        client.setEndpoint('https://cloud.appwrite.io/v1');
-        client.setProject('default');
-        return client;
+        throw error;
     }
 };
 
@@ -37,13 +28,13 @@ export const databases = new Databases(client);
 
 // Export database configuration
 export const DB_CONFIG = {
-    databaseId: String(import.meta.env.VITE_APPWRITE_DATABASE_ID || 'default'),
+    databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
     collections: {
-        USERS: 'users',
-        ROOMS: 'rooms',
-        SCHEDULES: 'schedules',
-        NOTIFICATIONS: 'notifications',
-        TEACHER_AVAILABILITY: 'teacher_availability'
+        USERS: import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID || 'users',
+        ROOMS: import.meta.env.VITE_APPWRITE_ROOMS_COLLECTION_ID || 'rooms',
+        SCHEDULES: import.meta.env.VITE_APPWRITE_SCHEDULES_COLLECTION_ID || 'schedules',
+        NOTIFICATIONS: import.meta.env.VITE_APPWRITE_NOTIFICATIONS_COLLECTION_ID || 'notifications',
+        TEACHER_AVAILABILITY: import.meta.env.VITE_APPWRITE_TEACHER_AVAILABILITY_COLLECTION_ID || 'teacher_availability'
     }
 } as const;
 

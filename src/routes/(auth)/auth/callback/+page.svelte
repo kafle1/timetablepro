@@ -4,17 +4,18 @@
     import { authService } from '$lib/services/auth';
     import { Loader2 } from 'lucide-svelte';
     import { goto } from '$app/navigation';
+    import { ROUTES } from '$lib/config';
 
     let error: string | null = null;
 
     onMount(async () => {
         try {
             await authService.handleOAuthCallback();
-        } catch (err: any) {
+        } catch (err) {
             console.error('OAuth callback error:', err);
-            error = err.message || 'Authentication failed. Please try again.';
+            error = err instanceof Error ? err.message : 'Authentication failed';
             setTimeout(() => {
-                goto('/login?error=google_auth_failed');
+                goto(ROUTES.LOGIN + '?error=google_auth_failed');
             }, 2000);
         }
     });
@@ -24,7 +25,7 @@
     <div class="w-full max-w-md p-8 space-y-4 text-center">
         {#if error}
             <div class="space-y-2">
-                <h2 class="text-lg font-semibold text-red-600">Authentication Failed</h2>
+                <h2 class="text-lg font-semibold text-destructive">Authentication Failed</h2>
                 <p class="text-sm text-muted-foreground">{error}</p>
                 <p class="text-sm text-muted-foreground">Redirecting back to login...</p>
             </div>

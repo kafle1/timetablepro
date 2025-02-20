@@ -74,7 +74,7 @@
 </script>
 
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex items-center justify-between">
         <h1 class="text-3xl font-bold">Admin Dashboard</h1>
     </div>
 
@@ -83,9 +83,9 @@
             <AlertDescription>{error}</AlertDescription>
         </Alert>
     {:else if loading}
-        <div class="text-center py-8">Loading dashboard data...</div>
+        <div class="py-8 text-center">Loading dashboard data...</div>
     {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {#each stats as stat}
                 <Card>
                     <CardHeader>
@@ -99,7 +99,7 @@
             {/each}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Card>
                 <CardHeader>
                     <CardTitle>Quick Actions</CardTitle>
@@ -107,12 +107,12 @@
                 <CardContent class="space-y-4">
                     <div class="grid gap-4">
                         <a href="/rooms" class="w-full">
-                            <Button variant="outline" class="w-full justify-start">
+                            <Button variant="outline" class="justify-start w-full">
                                 Manage Rooms
                             </Button>
                         </a>
                         <a href="/schedule" class="w-full">
-                            <Button variant="outline" class="w-full justify-start">
+                            <Button variant="outline" class="justify-start w-full">
                                 Manage Schedules
                             </Button>
                         </a>

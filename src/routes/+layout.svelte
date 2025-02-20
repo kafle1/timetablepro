@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
 	import { ROUTES, USER_ROLES } from '$lib/config';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
+	import type { User } from '$lib/types';
 
 	// Protected routes configuration
 	const protectedRoutes = [
@@ -18,16 +19,26 @@
 		'/profile'
 	];
 
-	const roleBasedRoutes = {
+	const roleBasedRoutes: Record<keyof typeof USER_ROLES, string[]> = {
 		[USER_ROLES.ADMIN]: ['/admin', '/rooms', '/schedules'],
 		[USER_ROLES.TEACHER]: ['/teacher', '/schedules'],
 		[USER_ROLES.STUDENT]: ['/student', '/schedules']
 	};
 
+	const publicRoutes = [ROUTES.LOGIN, ROUTES.REGISTER, '/'];
+
 	onMount(async () => {
-		const user = await authService.getCurrentUser();
-		if (user) {
-			userStore.set(user);
+		try {
+			const user = await authService.getCurrentUser();
+			if (user) {
+				userStore.set(user);
+			}
+		} catch (error) {
+			console.error('Error fetching user:', error);
+			// If we're not on a public route, redirect to login
+			if (!publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
+				goto(ROUTES.LOGIN);
+			}
 		}
 	});
 
@@ -35,7 +46,7 @@
 		handleRouteProtection($page.url.pathname, $userStore);
 	}
 
-	function handleRouteProtection(path: string, user: any) {
+	function handleRouteProtection(path: string, user: User | null) {
 		// Allow public routes
 		if (!protectedRoutes.some(route => path.startsWith(route))) {
 			return;
@@ -74,9 +85,9 @@
 			<div class="container flex items-center justify-between px-4 py-4 mx-auto">
 				<nav class="flex items-center space-x-6">
 					<a href="/" class="text-lg font-semibold">TimeTablePro</a>
-					{#if $userStore.role === 'admin'}
+					{#if $userStore.role === USER_ROLES.ADMIN}
 						<a href="/admin" class="hover:text-primary">Admin</a>
-					{:else if $userStore.role === 'teacher'}
+					{:else if $userStore.role === USER_ROLES.TEACHER}
 						<a href="/teacher" class="hover:text-primary">Dashboard</a>
 					{:else}
 						<a href="/student" class="hover:text-primary">Dashboard</a>
