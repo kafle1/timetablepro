@@ -2,28 +2,54 @@ import { AppError } from './error';
 import type { Schedule, Room, TeacherAvailability, User } from '$lib/types';
 import { TIME_CONFIG, ROOM_CONFIG, PASSWORD_CONFIG, USER_ROLES } from '../config/constants';
 
-// Import RECURRENCE_TYPES and TIME_SLOTS directly for tests
-// In tests, these will be mocked with the test versions
-let RECURRENCE_TYPES: string[];
-let TIME_SLOTS: string[];
+// Define our own constants for testing compatibility
+// These will be used if the imports from constants.ts fail
+// or if we're in a test environment
+const DEFAULT_TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+const DEFAULT_RECURRENCE_TYPES = ['once', 'daily', 'weekly', 'monthly'];
 
-try {
-  // Try to import from constants
-  const constants = require('../config/constants');
-  RECURRENCE_TYPES = Array.isArray(constants.RECURRENCE_TYPES) 
-    ? constants.RECURRENCE_TYPES 
-    : Object.values(constants.RECURRENCE_TYPES || {});
-  
-  TIME_SLOTS = Array.isArray(constants.TIME_SLOTS)
-    ? (typeof constants.TIME_SLOTS[0] === 'string'
-        ? constants.TIME_SLOTS
-        : constants.TIME_SLOTS.map((slot: any) => slot.value))
-    : Object.values(constants.TIME_SLOTS || {});
-} catch (error) {
-  // Fallback for tests
-  RECURRENCE_TYPES = ['once', 'daily', 'weekly', 'monthly'];
-  TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+// Get time slots and recurrence types from constants or use defaults
+function getTimeSlots(): string[] {
+  try {
+    // Try to import from constants
+    const constants = require('../config/constants');
+    if (constants.TIME_SLOTS) {
+      if (Array.isArray(constants.TIME_SLOTS)) {
+        if (typeof constants.TIME_SLOTS[0] === 'string') {
+          return constants.TIME_SLOTS;
+        } else {
+          return constants.TIME_SLOTS.map((slot: any) => slot.value);
+        }
+      } else if (typeof constants.TIME_SLOTS === 'object') {
+        return Object.values(constants.TIME_SLOTS);
+      }
+    }
+  } catch (error) {
+    // Fallback for tests
+  }
+  return DEFAULT_TIME_SLOTS;
 }
+
+function getRecurrenceTypes(): string[] {
+  try {
+    // Try to import from constants
+    const constants = require('../config/constants');
+    if (constants.RECURRENCE_TYPES) {
+      if (Array.isArray(constants.RECURRENCE_TYPES)) {
+        return constants.RECURRENCE_TYPES;
+      } else if (typeof constants.RECURRENCE_TYPES === 'object') {
+        return Object.values(constants.RECURRENCE_TYPES);
+      }
+    }
+  } catch (error) {
+    // Fallback for tests
+  }
+  return DEFAULT_RECURRENCE_TYPES;
+}
+
+// Initialize the constants
+const TIME_SLOTS = getTimeSlots();
+const RECURRENCE_TYPES = getRecurrenceTypes();
 
 type FormErrors<T> = {
     [K in keyof T]?: string[];
