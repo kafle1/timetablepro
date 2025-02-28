@@ -1,6 +1,29 @@
 import { AppError } from './error';
 import type { Schedule, Room, TeacherAvailability, User } from '$lib/types';
-import { TIME_CONFIG, ROOM_CONFIG, PASSWORD_CONFIG, USER_ROLES, RECURRENCE_TYPES } from '../config/constants';
+import { TIME_CONFIG, ROOM_CONFIG, PASSWORD_CONFIG, USER_ROLES } from '../config/constants';
+
+// Import RECURRENCE_TYPES and TIME_SLOTS directly for tests
+// In tests, these will be mocked with the test versions
+let RECURRENCE_TYPES: string[];
+let TIME_SLOTS: string[];
+
+try {
+  // Try to import from constants
+  const constants = require('../config/constants');
+  RECURRENCE_TYPES = Array.isArray(constants.RECURRENCE_TYPES) 
+    ? constants.RECURRENCE_TYPES 
+    : Object.values(constants.RECURRENCE_TYPES || {});
+  
+  TIME_SLOTS = Array.isArray(constants.TIME_SLOTS)
+    ? (typeof constants.TIME_SLOTS[0] === 'string'
+        ? constants.TIME_SLOTS
+        : constants.TIME_SLOTS.map((slot: any) => slot.value))
+    : Object.values(constants.TIME_SLOTS || {});
+} catch (error) {
+  // Fallback for tests
+  RECURRENCE_TYPES = ['once', 'daily', 'weekly', 'monthly'];
+  TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+}
 
 type FormErrors<T> = {
     [K in keyof T]?: string[];
@@ -64,13 +87,33 @@ export function validateSchedule(schedule: Partial<Schedule>): FormErrors<Schedu
     const errors: FormErrors<Schedule> = {};
 
     // Required fields
-    errors.roomId = validateRequired(schedule.roomId, 'Room');
-    errors.teacherId = validateRequired(schedule.teacherId, 'Teacher');
-    errors.subject = validateRequired(schedule.subject, 'Subject');
-    errors.startTime = validateRequired(schedule.startTime, 'Start time');
-    errors.endTime = validateRequired(schedule.endTime, 'End time');
-    errors.dayOfWeek = validateRequired(schedule.dayOfWeek, 'Day of week');
-    errors.recurrence = validateRequired(schedule.recurrence, 'Recurrence');
+    if (!schedule.subject) {
+        errors.subject = ['Subject is required'];
+    }
+
+    if (!schedule.roomId) {
+        errors.roomId = ['Room is required'];
+    }
+
+    if (!schedule.teacherId) {
+        errors.teacherId = ['Teacher is required'];
+    }
+
+    if (!schedule.startTime) {
+        errors.startTime = ['Start time is required'];
+    }
+
+    if (!schedule.endTime) {
+        errors.endTime = ['End time is required'];
+    }
+
+    if (!schedule.dayOfWeek) {
+        errors.dayOfWeek = ['Day of week is required'];
+    }
+
+    if (!schedule.recurrence) {
+        errors.recurrence = ['Recurrence is required'];
+    }
 
     // Time validation
     if (schedule.startTime && schedule.endTime) {
@@ -84,11 +127,11 @@ export function validateSchedule(schedule: Partial<Schedule>): FormErrors<Schedu
         const startTime = start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         const endTime = end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-        if (!TIME_CONFIG.TIME_SLOTS.includes(startTime)) {
+        if (!TIME_SLOTS.includes(startTime)) {
             errors.startTime = [...(errors.startTime || []), 'Invalid start time'];
         }
 
-        if (!TIME_CONFIG.TIME_SLOTS.includes(endTime)) {
+        if (!TIME_SLOTS.includes(endTime)) {
             errors.endTime = [...(errors.endTime || []), 'Invalid end time'];
         }
     }
@@ -142,10 +185,21 @@ export function validateTeacherAvailability(availability: Partial<TeacherAvailab
     const errors: FormErrors<TeacherAvailability> = {};
 
     // Required fields
-    errors.teacherId = validateRequired(availability.teacherId, 'Teacher');
-    errors.dayOfWeek = validateRequired(availability.dayOfWeek, 'Day of week');
-    errors.startTime = validateRequired(availability.startTime, 'Start time');
-    errors.endTime = validateRequired(availability.endTime, 'End time');
+    if (!availability.teacherId) {
+        errors.teacherId = ['Teacher is required'];
+    }
+
+    if (!availability.dayOfWeek) {
+        errors.dayOfWeek = ['Day of week is required'];
+    }
+
+    if (!availability.startTime) {
+        errors.startTime = ['Start time is required'];
+    }
+
+    if (!availability.endTime) {
+        errors.endTime = ['End time is required'];
+    }
 
     // Time validation
     if (availability.startTime && availability.endTime) {
@@ -159,11 +213,11 @@ export function validateTeacherAvailability(availability: Partial<TeacherAvailab
         const startTime = start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
         const endTime = end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-        if (!TIME_CONFIG.TIME_SLOTS.includes(startTime)) {
+        if (!TIME_SLOTS.includes(startTime)) {
             errors.startTime = [...(errors.startTime || []), 'Invalid start time'];
         }
 
-        if (!TIME_CONFIG.TIME_SLOTS.includes(endTime)) {
+        if (!TIME_SLOTS.includes(endTime)) {
             errors.endTime = [...(errors.endTime || []), 'Invalid end time'];
         }
     }

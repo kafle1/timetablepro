@@ -1,15 +1,32 @@
+/**
+ * Application-wide constants
+ */
+
 // Time Configuration
 export const TIME_CONFIG = {
-    START_TIME: '08:00',
-    END_TIME: '17:00',
-    START_HOUR: 8,
-    END_HOUR: 17,
-    SLOT_DURATION: 60,
-    WORKING_DAYS: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const,
-    TIME_SLOTS: [
-        '08:00', '09:00', '10:00', '11:00', '12:00',
-        '13:00', '14:00', '15:00', '16:00', '17:00'
-    ]
+    // Working days of the week
+    WORKING_DAYS: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    
+    // Default working hours (24-hour format)
+    WORKING_HOURS: {
+        START: 8, // 8:00 AM
+        END: 18,  // 6:00 PM
+    },
+    
+    // Time slot duration in minutes
+    DEFAULT_SLOT_DURATION: 60,
+    
+    // Minimum duration for a schedule in minutes
+    MIN_DURATION: 15,
+    
+    // Maximum duration for a schedule in minutes
+    MAX_DURATION: 240,
+    
+    // Default view mode for calendar
+    DEFAULT_VIEW: 'week',
+    
+    // Available view modes
+    VIEWS: ['day', 'week', 'month'],
 };
 
 // Room Configuration
@@ -48,23 +65,60 @@ export const FEATURE_FLAGS = {
 
 // User Roles
 export const USER_ROLES = {
-    ADMIN: 'ADMIN',
-    TEACHER: 'TEACHER',
-    STUDENT: 'STUDENT'
-} as const;
+    ADMIN: 'admin',
+    TEACHER: 'teacher',
+    STUDENT: 'student',
+};
 
 // Notification Types
 export const NOTIFICATION_TYPES = {
     INFO: 'info',
     WARNING: 'warning',
     ERROR: 'error',
-    SUCCESS: 'success'
-} as const;
+    SUCCESS: 'success',
+    SCHEDULE_CREATED: 'schedule_created',
+    SCHEDULE_UPDATED: 'schedule_updated',
+    SCHEDULE_DELETED: 'schedule_deleted',
+    CONFLICT_DETECTED: 'conflict_detected',
+    SYSTEM_NOTIFICATION: 'system_notification',
+};
 
 // Recurrence Types
-export const RECURRENCE_TYPES = [
-    'once',
-    'daily',
-    'weekly',
-    'monthly'
-] as const; 
+export const RECURRENCE_TYPES = {
+    ONCE: 'once',
+    DAILY: 'daily',
+    WEEKLY: 'weekly',
+    BIWEEKLY: 'biweekly',
+    MONTHLY: 'monthly',
+};
+
+export const CONFLICT_STATUS = {
+    NONE: 'none',
+    WARNING: 'warning',
+    CONFLICT: 'conflict',
+};
+
+// Time slots for scheduling and availability
+export const TIME_SLOTS = [
+    { value: '08:00', label: '8:00 AM' },
+    { value: '09:00', label: '9:00 AM' },
+    { value: '10:00', label: '10:00 AM' },
+    { value: '11:00', label: '11:00 AM' },
+    { value: '12:00', label: '12:00 PM' },
+    { value: '13:00', label: '1:00 PM' },
+    { value: '14:00', label: '2:00 PM' },
+    { value: '15:00', label: '3:00 PM' },
+    { value: '16:00', label: '4:00 PM' },
+    { value: '17:00', label: '5:00 PM' },
+];
+
+// Days of the week for scheduling and availability
+export const DAYS_OF_WEEK = [
+    { value: 'monday', label: 'Monday' },
+    { value: 'tuesday', label: 'Tuesday' },
+    { value: 'wednesday', label: 'Wednesday' },
+    { value: 'thursday', label: 'Thursday' },
+    { value: 'friday', label: 'Friday' },
+    { value: 'saturday', label: 'Saturday' },
+    { value: 'sunday', label: 'Sunday' },
+]; 

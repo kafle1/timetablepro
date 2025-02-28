@@ -28,7 +28,7 @@ export const databases = new Databases(client);
 
 // Export database configuration
 export const DB_CONFIG = {
-    databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
+    databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID || 'timetablepro',
     collections: {
         USERS: import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID || 'users',
         ROOMS: import.meta.env.VITE_APPWRITE_ROOMS_COLLECTION_ID || 'rooms',
@@ -37,5 +37,59 @@ export const DB_CONFIG = {
         TEACHER_AVAILABILITY: import.meta.env.VITE_APPWRITE_TEACHER_AVAILABILITY_COLLECTION_ID || 'teacher_availability'
     }
 } as const;
+
+// Collection schemas
+export const COLLECTIONS = {
+    USERS: {
+        databaseId: DB_CONFIG.databaseId,
+        collectionId: DB_CONFIG.collections.USERS,
+        attributes: {
+            userId: 'userId',
+            email: 'email',
+            name: 'name',
+            role: 'role',
+            availability: 'availability'
+        }
+    },
+    ROOMS: {
+        databaseId: DB_CONFIG.databaseId,
+        collectionId: DB_CONFIG.collections.ROOMS,
+        attributes: {
+            roomName: 'roomName',
+            capacity: 'capacity',
+            building: 'building',
+            floor: 'floor',
+            features: 'features',
+            isActive: 'isActive'
+        }
+    },
+    SCHEDULES: {
+        databaseId: DB_CONFIG.databaseId,
+        collectionId: DB_CONFIG.collections.SCHEDULES,
+        attributes: {
+            className: 'className',
+            duration: 'duration',
+            roomId: 'roomId',
+            teacherId: 'teacherId',
+            subject: 'subject',
+            startTime: 'startTime',
+            endTime: 'endTime',
+            dayOfWeek: 'dayOfWeek',
+            recurrence: 'recurrence',
+            conflictStatus: 'conflictStatus'
+        }
+    },
+    NOTIFICATIONS: {
+        databaseId: DB_CONFIG.databaseId,
+        collectionId: DB_CONFIG.collections.NOTIFICATIONS,
+        attributes: {
+            userId: 'userId',
+            title: 'title',
+            message: 'message',
+            type: 'type',
+            isRead: 'isRead'
+        }
+    }
+};
 
 export default client; 

@@ -1,138 +1,160 @@
-import type { NOTIFICATION_TYPES, USER_ROLES } from '$lib/config';
 import type { Models } from 'appwrite';
+import type { NOTIFICATION_TYPES, USER_ROLES } from '$lib/config/constants';
 
-// User types
-export interface User extends Models.Document {
-    userId: string;
-    email: string;
-    name: string;
-    role: keyof typeof USER_ROLES;
-    availability: Array<{
-        dayOfWeek: string;
-        timeSlots: string[];
-    }>;
-    createdAt: string;
-    updatedAt: string;
+// Base Appwrite document type
+export interface AppwriteDocument extends Models.Document {
+  $id: string;
+  $collectionId: string;
+  $databaseId: string;
+  $createdAt: string;
+  $updatedAt: string;
+  $permissions: string[];
 }
 
-// Room types
-export interface Room {
-    $id: string;
-    roomName: string;
-    capacity: number;
-    building: string;
-    floor: number;
-    features: RoomFeature[];
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+// User type
+export interface User extends AppwriteDocument {
+  userId: string;
+  email: string;
+  name: string;
+  role: keyof typeof USER_ROLES;
+  isActive: boolean;
+  preferences?: Record<string, any>;
 }
 
+// Room type
+export interface Room extends AppwriteDocument {
+  roomName: string;
+  capacity: number;
+  building: string;
+  floor: number;
+  features: RoomFeature[];
+  isActive: boolean;
+}
+
+// Schedule type
+export interface Schedule extends AppwriteDocument {
+  className: string;
+  subject: string;
+  teacherId: string;
+  roomId: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  dayOfWeek: DayOfWeek;
+  recurrence: Recurrence;
+  conflictStatus?: 'none' | 'warning' | 'conflict';
+}
+
+// Notification type
+export interface Notification extends AppwriteDocument {
+  userId: string;
+  title: string;
+  message: string;
+  type: keyof typeof NOTIFICATION_TYPES;
+  isRead: boolean;
+  relatedEntityId?: string;
+  relatedEntityType?: string;
+}
+
+// Teacher availability type
+export interface TeacherAvailability extends AppwriteDocument {
+  teacherId: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  note?: string;
+}
+
+// Calendar view type
+export type CalendarViewType = 'day' | 'week' | 'month';
+
+// Schedule filter type
+export interface ScheduleFilter {
+  startDate?: string;
+  endDate?: string;
+  teacherId?: string;
+  roomId?: string;
+  dayOfWeek?: DayOfWeek;
+}
+
+// Conflict check result
+export interface ConflictCheckResult {
+  hasConflict: boolean;
+  conflictType: 'none' | 'warning' | 'conflict';
+  conflictingSchedules?: Schedule[];
+  message?: string;
+}
+
+// Room feature types
 export type RoomFeature = 
-    | 'projector'
-    | 'whiteboard'
-    | 'computers'
-    | 'air_conditioning'
-    | 'internet'
-    | 'audio_system';
+  | 'projector'
+  | 'whiteboard'
+  | 'computer'
+  | 'internet'
+  | 'air_conditioning'
+  | 'wheelchair_accessible'
+  | 'video_conferencing'
+  | 'audio_system';
 
-// Schedule types
-export interface Schedule {
-    $id: string;
-    className: string;
-    duration: number;
-    conflictStatus?: 'conflict' | 'no-conflict';
-    roomId: string;
-    teacherId: string;
-    subject: string;
-    startTime: string;
-    endTime: string;
-    dayOfWeek: DayOfWeek;
-    recurrence: Recurrence;
-    createdAt: string;
-    updatedAt: string;
-}
-
+// Day of week type
 export type DayOfWeek = 
-    | 'monday'
-    | 'tuesday'
-    | 'wednesday'
-    | 'thursday'
-    | 'friday'
-    | 'saturday'
-    | 'sunday';
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
 
+// Recurrence type
 export type Recurrence = 
-    | 'once'
-    | 'daily'
-    | 'weekly'
-    | 'biweekly'
-    | 'monthly';
-
-// Notification types
-export interface Notification {
-    id: string;
-    userId: string;
-    title: string;
-    message: string;
-    type: keyof typeof NOTIFICATION_TYPES;
-    isRead: boolean;
-    createdAt: string;
-}
-
-// Teacher availability types
-export interface TeacherAvailability {
-    id: string;
-    teacherId: string;
-    dayOfWeek: DayOfWeek;
-    startTime: string;
-    endTime: string;
-    isRecurring: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
+  | 'once'
+  | 'daily'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly';
 
 // API Response types
 export interface ApiResponse<T> {
-    data: T;
-    message?: string;
-    error?: string;
+  data: T;
+  message?: string;
+  error?: string;
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T> {
-    total: number;
-    page: number;
-    perPage: number;
+  total: number;
+  page: number;
+  perPage: number;
 }
 
 // Form validation types
 export interface ValidationError {
-    field: string;
-    message: string;
+  field: string;
+  message: string;
 }
 
-export interface FormErrors<T = any> {
-    [K in keyof T]?: string[];
-}
+// Simple string array map for form errors
+export type FormErrors = Record<string, string[]>;
 
 // Route types
 export interface RouteData {
-    user?: User;
-    error?: string;
+  user?: User;
+  error?: string;
 }
 
 // Store types
 export interface UserStore {
-    user: User | null;
-    loading: boolean;
-    error: string | null;
+  user: User | null;
+  loading: boolean;
+  error: string | null;
 }
 
 export interface NotificationStore {
-    notifications: Notification[];
-    unreadCount: number;
-    loading: boolean;
-    error: string | null;
+  notifications: Notification[];
+  unreadCount: number;
+  loading: boolean;
+  error: string | null;
 }
 
 export type { Models }; 

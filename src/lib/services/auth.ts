@@ -1,158 +1,266 @@
+import { ID, Query } from 'appwrite';
 import { account, databases, DB_CONFIG } from '$lib/config/appwrite';
-import { ID, Query, Permission, Role } from 'appwrite';
 import type { User } from '$lib/types';
-import { handleAppwriteError } from '$lib/utils/error';
-import { USER_ROLES } from '$lib/config';
-import { authStore } from '$lib/stores/auth';
+import { USER_ROLES } from '$lib/config/constants';
 
-export class AuthService {
-    async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<void> {
-        try {
-            // Enhanced validation
-            if (!email?.trim() || !password?.trim() || !name?.trim() || !role) {
-                console.log('Validation failed:', { email, password, name, role });
-                throw new Error('All fields are required');
-            }
-
-            await authStore.register(email.trim(), password, name.trim(), role);
-        } catch (error) {
-            console.error('Registration error:', error);
-            throw handleAppwriteError(error);
-        }
-    }
-
-    async login(email: string, password: string): Promise<void> {
-        try {
-            await authStore.login(email, password);
-        } catch (error) {
-            console.error('Login error:', error);
-            throw handleAppwriteError(error);
-        }
-    }
-
-    async loginWithGoogle(): Promise<void> {
-        try {
-            const origin = window.location.origin;
-            const successUrl = `${origin}/auth/callback`;
-            const failureUrl = `${origin}/login?error=google_auth_failed`;
-
-            await account.createOAuth2Session(
-                'google',
-                successUrl,
-                failureUrl,
-                ['email', 'profile']
-            );
-        } catch (error) {
-            console.error('Google login error:', error);
-            if (error instanceof Error) {
-                if (error.message.includes('OAuth provider is not configured')) {
-                    throw new Error('Google OAuth is not properly configured. Please check your Appwrite settings.');
-                }
-            }
-            throw handleAppwriteError(error);
-        }
-    }
-
-    async handleOAuthCallback(): Promise<void> {
-        try {
-            // Get the current session first
-            const session = await account.getSession('current');
-            if (!session) {
-                throw new Error('No active session found');
-            }
-
-            const accountDetails = await account.get();
-            if (!accountDetails || !accountDetails.email) {
-                throw new Error('Failed to get account details');
-            }
-
-            // Get or create user document
-            let user = await this.getUserByEmail(accountDetails.email);
-            
-            if (!user) {
-                // Create new user document with proper permissions
-                user = await databases.createDocument(
-                    DB_CONFIG.databaseId,
-                    DB_CONFIG.collections.USERS,
-                    accountDetails.$id,
-                    {
-                        userId: accountDetails.$id,
-                        email: accountDetails.email,
-                        name: accountDetails.name || accountDetails.email.split('@')[0],
-                        role: USER_ROLES.STUDENT,
-                        availability: []
-                    },
-                    [
-                        Permission.read(Role.any()),
-                        Permission.update(Role.user(accountDetails.$id)),
-                        Permission.delete(Role.user(accountDetails.$id))
-                    ]
-                ) as User;
-            }
-            
-            authStore.set({ user, loading: false, error: null });
-            await this.redirectToDashboard(user);
-        } catch (error) {
-            console.error('OAuth callback error:', error);
-            // Clean up the session if something goes wrong
-            try {
-                await account.deleteSession('current');
-            } catch (cleanupError) {
-                console.error('Session cleanup error:', cleanupError);
-            }
-            throw handleAppwriteError(error);
-        }
-    }
-
-    async getUserByEmail(email: string): Promise<User | null> {
-        try {
-            const response = await databases.listDocuments(
-                DB_CONFIG.databaseId,
-                DB_CONFIG.collections.USERS,
-                [Query.equal('email', [email])]
-            );
-            
-            return response.documents[0] as User || null;
-        } catch (error) {
-            console.error('Error fetching user:', error);
-            return null;
-        }
-    }
-
-    async logout(): Promise<void> {
-        try {
-            await authStore.logout();
-        } catch (error) {
-            console.error('Logout error:', error);
-            throw handleAppwriteError(error);
-        }
-    }
-
-    async getCurrentUser(): Promise<User | null> {
-        try {
-            return await authStore.checkSession();
-        } catch (error) {
-            return null;
-        }
-    }
-
-    private async redirectToDashboard(user: User) {
-        await authStore.redirectToDashboard(user);
-    }
+export interface CreateUserParams {
+  email: string;
+  password: string;
+  name: string;
+  role: keyof typeof USER_ROLES;
 }
 
-export const authService = new AuthService();
+export interface UpdateUserParams {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: keyof typeof USER_ROLES;
+  isActive?: boolean;
+  preferences?: Record<string, any>;
+}
 
-export async function updateProfile(user: Partial<User>) {
+class AuthService {
+  /**
+   * Create a new account
+   */
+  async createAccount(params: CreateUserParams): Promise<User> {
     try {
-        if (user.name) {
-            await account.updateName(user.name);
-        }
-        if (user.email) {
-            await account.updateEmail(user.email, user.password);
-        }
-        return await account.get();
+      const { email, password, name, role } = params;
+      
+      // Create account in Appwrite Auth
+      const newAccount = await account.create(
+        ID.unique(),
+        email,
+        password,
+        name
+      );
+      
+      // Create user document in database
+      const userData = {
+        userId: newAccount.$id,
+        email,
+        name,
+        role,
+        isActive: true,
+        preferences: {}
+      };
+      
+      const userDoc = await databases.createDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        newAccount.$id,
+        userData
+      );
+      
+      return userDoc as unknown as User;
     } catch (error) {
-        throw handleAppwriteError(error);
+      console.error('Error creating account:', error);
+      throw error;
     }
-} 
+  }
+  
+  /**
+   * Login with email and password
+   */
+  async login(email: string, password: string): Promise<User> {
+    try {
+      // Login with Appwrite Auth
+      await account.createEmailSession(email, password);
+      
+      // Get the current account
+      const currentAccount = await account.get();
+      
+      // Get the user document from database
+      const user = await this.getUserById(currentAccount.$id);
+      
+      return user;
+    } catch (error) {
+      console.error('Error logging in:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Logout the current user
+   */
+  async logout(): Promise<void> {
+    try {
+      await account.deleteSession('current');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get the current user
+   */
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const currentAccount = await account.get();
+      
+      // Get the user document from database
+      const user = await this.getUserById(currentAccount.$id);
+      
+      return user;
+    } catch (error) {
+      // If no session exists, return null
+      return null;
+    }
+  }
+  
+  /**
+   * Get a user by ID
+   */
+  async getUserById(userId: string): Promise<User> {
+    try {
+      const user = await databases.getDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        userId
+      );
+      
+      return user as unknown as User;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update a user
+   */
+  async updateUser(userId: string, params: UpdateUserParams): Promise<User> {
+    try {
+      const user = await databases.updateDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        userId,
+        params
+      );
+      
+      return user as unknown as User;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Delete a user
+   */
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      // Delete user document from database
+      await databases.deleteDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        userId
+      );
+      
+      // Note: Deleting the actual account from Appwrite Auth
+      // requires admin privileges and is typically done through
+      // server-side functions
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all users
+   */
+  async getUsers(): Promise<User[]> {
+    try {
+      const response = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS
+      );
+      
+      return response.documents as unknown as User[];
+    } catch (error) {
+      console.error('Error getting users:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all teachers
+   */
+  async getTeachers(): Promise<User[]> {
+    try {
+      const response = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        [Query.equal('role', USER_ROLES.TEACHER)]
+      );
+      
+      return response.documents as unknown as User[];
+    } catch (error) {
+      console.error('Error getting teachers:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all students
+   */
+  async getStudents(): Promise<User[]> {
+    try {
+      const response = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        [Query.equal('role', USER_ROLES.STUDENT)]
+      );
+      
+      return response.documents as unknown as User[];
+    } catch (error) {
+      console.error('Error getting students:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get all admins
+   */
+  async getAdmins(): Promise<User[]> {
+    try {
+      const response = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        [Query.equal('role', USER_ROLES.ADMIN)]
+      );
+      
+      return response.documents as unknown as User[];
+    } catch (error) {
+      console.error('Error getting admins:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Reset password
+   */
+  async resetPassword(email: string): Promise<void> {
+    try {
+      await account.createRecovery(email, 'http://localhost:5173/reset-password');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update password
+   */
+  async updatePassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      await account.updatePassword(newPassword, oldPassword);
+    } catch (error) {
+      console.error('Error updating password:', error);
+      throw error;
+    }
+  }
+}
+
+export const authService = new AuthService(); 
