@@ -11,10 +11,10 @@
 
     onMount(async () => {
         try {
-            await authService.handleOAuthCallback();
-            const user = await authService.getCurrentUser();
+            const user = await authService.handleOAuthCallback();
             if (user) {
-                await authStore.redirectToDashboard(user);
+                const dashboardRoute = authStore.getDashboardRoute(user.role);
+                await goto(dashboardRoute);
             } else {
                 throw new Error('Failed to get user after OAuth callback');
             }
@@ -38,7 +38,7 @@
             </div>
         {:else}
             <div class="space-y-4">
-                <Loader2 class="w-8 h-8 animate-spin mx-auto text-primary" />
+                <Loader2 class="w-8 h-8 animate-spin mx-auto text-primary" role="status" />
                 <h2 class="text-lg font-semibold">Completing Authentication</h2>
                 <p class="text-sm text-muted-foreground">Please wait while we set up your account...</p>
             </div>
