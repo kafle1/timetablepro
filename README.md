@@ -1,10 +1,8 @@
 # TimeTablePro
 
-A modern, flexible timetable management system built with SvelteKit and Appwrite.
+A modern timetable management system built with SvelteKit and Appwrite.
 
-## Overview
-
-TimeTablePro helps educational institutions manage their schedules efficiently with features like:
+## Features
 
 - 📅 Intelligent schedule management
 - 👥 Role-based access (Admin, Teacher, Student)
@@ -34,10 +32,8 @@ yarn dev
 For detailed documentation, please see:
 
 - [Getting Started](docs/getting-started.md)
-- [User Guide](docs/user-guide.md)
-- [Developer Guide](docs/developer-guide.md)
-- [API Reference](docs/api-reference.md)
-- [Deployment Guide](docs/deployment.md)
+- [API Reference](docs/API.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
 ## License
 

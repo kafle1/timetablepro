@@ -1,26 +1,43 @@
-# Environment Variables Documentation
-
-This document describes the environment variables used in TimeTablePro.
+# Environment Variables
 
 ## Required Variables
 
-These variables must be set for the application to function properly:
+```env
+# Appwrite Configuration
+PUBLIC_APPWRITE_PROJECT_ID=your-project-id
+PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_API_KEY=your-api-key
 
-### Appwrite Configuration
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `VITE_APPWRITE_ENDPOINT` | Appwrite API endpoint URL | `http://localhost/v1` |
-| `VITE_APPWRITE_PROJECT_ID` | Your Appwrite project ID | `64a1b2c3d4e5f6g7` |
-| `VITE_APPWRITE_DATABASE_ID` | Your Appwrite database ID | `timetablepro-db` |
+# Application
+NODE_ENV=development|production
+PORT=3000
+```
 
 ## Optional Variables
 
-These variables have defaults but can be customized if needed:
+```env
+# Customization
+PUBLIC_APP_NAME=TimeTablePro
+PUBLIC_THEME=light|dark
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `VITE_APP_NAME` | Application name | `TimeTablePro` | `MySchoolScheduler` |
-| `VITE_APP_URL` | Application URL | `http://localhost:5173` | `https://schedule.myschool.com` |
+# Features
+ENABLE_NOTIFICATIONS=true|false
+ENABLE_ANALYTICS=true|false
+```
+
+## Development vs Production
+
+For development:
+```env
+NODE_ENV=development
+PUBLIC_APPWRITE_ENDPOINT=http://localhost/v1
+```
+
+For production:
+```env
+NODE_ENV=production
+PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+```
 
 ## Default Configuration
 
@@ -47,20 +64,6 @@ The following settings are hard-coded in the application for simplicity:
 - Toast duration: 5 seconds
 - Animations: enabled
 
-## Development vs Production
-
-Some variables might need different values in development and production:
-
-```bash
-# Development
-VITE_APPWRITE_ENDPOINT=http://localhost/v1
-VITE_APP_URL=http://localhost:5173
-
-# Production
-VITE_APPWRITE_ENDPOINT=https://api.yourdomain.com/v1
-VITE_APP_URL=https://schedule.yourdomain.com
-```
-
 ## Setting Up
 
 1. Copy `.env.example` to `.env`:
@@ -83,16 +86,6 @@ VITE_APP_URL=https://schedule.yourdomain.com
 - Use different values for development and production
 - Regularly rotate sensitive credentials
 - Use secure values in production
-
-```bash
-# Development
-VITE_APPWRITE_ENDPOINT=http://localhost/v1
-VITE_APP_URL=http://localhost:5173
-
-# Production
-VITE_APPWRITE_ENDPOINT=https://api.yourdomain.com/v1
-VITE_APP_URL=https://schedule.yourdomain.com
-```
 
 ## Setting Up Environment Variables
 

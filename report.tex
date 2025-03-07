@@ -1,0 +1,637 @@
+\documentclass[12pt,a4paper]{report}
+
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage[backend=biber, style=ieee]{biblatex} 
+\addbibresource{reference.bib}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{fancybox}
+\usepackage{longtable} 
+\usepackage{array} 
+\usepackage{booktabs}  
+\usepackage{multicol}
+\usepackage{tikz}
+\usepackage{pgfgantt}
+\usepackage{pgfplots}
+\usepackage[american voltages, american currents]{circuitikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,mindmap,trees,backgrounds}
+\usetikzlibrary{er}
+\usepackage{forest}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{float}
+
+% Define colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{primarycolor}{RGB}{70,130,180}
+\definecolor{secondarycolor}{RGB}{255,165,0}
+\definecolor{accentcolor}{RGB}{60,179,113}
+
+% TikZ styles
+\tikzstyle{block} = [rectangle, draw, fill=primarycolor!20, 
+    text width=5em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse, fill=primarycolor!20, 
+    minimum height=2em]
+
+% Code listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% Formatting Chapter Titles
+\titleformat{\chapter}[block]
+    {\normalfont\Large\bfseries\centering}
+    {CHAPTER \thechapter:}
+    {0.5em}
+    {\uppercase}
+
+\titleformat{name=\chapter,numberless}[block]
+    {\normalfont\Large\bfseries\centering}
+    {}
+    {0pt}
+    {\uppercase}
+
+\titlespacing*{\chapter}{0pt}{-1cm}{*}
+
+% Table of Contents Formatting
+\renewcommand{\cftchappresnum}{CHAPTER }
+\renewcommand{\cftchapaftersnum}{:}
+\setlength{\cftchapnumwidth}{7.5em}
+
+\renewcommand{\contentsname}{\MakeUppercase{Contents}} 
+\renewcommand{\cftchapfont}{\uppercase\bfseries} 
+\renewcommand{\cftchappagefont}{\bfseries} 
+\renewcommand{\cftsecfont}{\uppercase} 
+\renewcommand{\cftsubsecfont}{\uppercase} 
+\renewcommand{\cftsubsubsecfont}{\uppercase} 
+\renewcommand{\cftsecpagefont}{} 
+\renewcommand{\cftsubsecpagefont}{} 
+\renewcommand{\cftsubsubsecpagefont}{}
+
+% Page Layout
+\geometry{
+    a4paper,
+    top=1in,
+    bottom=1in,
+    left=1.25in,
+    right=1in
+}
+
+% Paragraph Style
+\setlength{\parskip}{1em}
+\renewcommand{\baselinestretch}{1.5}
+
+% Page Numbering
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+\pagestyle{plain}
+
+\begin{document}
+
+% Title Page
+\begin{titlepage}
+    \centering
+    {\LARGE \textbf{Lincoln University College}\par}
+    \vspace{0.2cm}
+    {\Large \textbf{Faculty of Computer Science and Multimedia}\par}
+    \vspace{0.5cm}
+    {\LARGE \textbf{TimeTablePro: A Modern Timetable Management System}\par}
+    \vspace{0.5cm}
+    {\Large \textbf{A Project Report}\par}
+    \vspace{0.3cm}
+    {\large Submitted to\par}
+    \vspace{0.3cm}
+    {\Large Saishab Bhattarai\par}
+    {\Large Lecturer\par}
+    {\Large Software Engineering [BIT 244]\par}
+    \vspace{0.3cm}
+    {\large In partial fulfillment of the requirements for the Internal Evaluation \par}
+    \vspace{0.3cm}
+    {\large Submitted by\par}
+    \vspace{0.2cm}
+    {\Large \textbf{Student Name}\par}
+    {\Large BIT 5th Semester\par}
+    {\Large University ID: LC000300XXXX\par}
+    \vspace{0.5cm}
+    {\large \textbf{2025/03/05}\par}
+\end{titlepage}
+\clearpage
+
+% Table of Contents
+\tableofcontents
+\clearpage
+
+\chapter{Introduction}
+\section{Background}
+In today's educational institutions, efficient timetable management is crucial for smooth operations. Traditional manual scheduling methods are time-consuming, error-prone, and often result in conflicts. TimeTablePro addresses these challenges by providing a modern, automated solution for timetable management.
+
+The education sector has seen significant digital transformation in recent years, yet many institutions still struggle with efficient schedule management. This project aims to bridge this gap by leveraging modern web technologies and intelligent algorithms to create a robust timetable management system.
+
+\section{Problem Statement}
+Educational institutions face several challenges in timetable management:
+\begin{itemize}
+    \item Manual scheduling is time-consuming and error-prone
+    \item Difficulty in handling schedule conflicts
+    \item Lack of real-time updates and notifications
+    \item Inefficient resource allocation
+    \item Poor accessibility and sharing of schedule information
+\end{itemize}
+
+\section{Objectives}
+The primary objectives of TimeTablePro are:
+\begin{itemize}
+    \item Develop an automated timetable management system
+    \item Implement intelligent conflict detection and resolution
+    \item Provide real-time schedule updates and notifications
+    \item Enable efficient resource allocation and management
+    \item Create an intuitive user interface for all stakeholders
+    \item Ensure system scalability and reliability
+\end{itemize}
+
+\section{Scope and Limitation}
+\subsection{Scope}
+The system encompasses:
+\begin{itemize}
+    \item Web-based timetable management interface
+    \item Automated schedule generation and conflict detection
+    \item User role management (Admin, Teacher, Student)
+    \item Room and resource allocation
+    \item Real-time notifications and updates
+    \item Schedule export and sharing capabilities
+\end{itemize}
+
+\subsection{Limitations}
+Current limitations include:
+\begin{itemize}
+    \item Limited support for complex recurring schedules
+    \item No mobile application (web-responsive only)
+    \item Maximum capacity of 10,000 concurrent users
+    \item Requires stable internet connection
+\end{itemize}
+
+\section{Report Organization}
+This report is organized into the following chapters:
+
+\begin{enumerate}
+    \item \textbf{Introduction:} Provides project background, objectives, and scope
+    \item \textbf{Literature Review:} Examines existing solutions and theoretical foundations
+    \item \textbf{System Analysis and Design:} Details system architecture and design decisions
+    \item \textbf{Testing:} Describes testing methodologies and results
+    \item \textbf{Conclusion:} Summarizes findings and future recommendations
+\end{enumerate}
+
+\chapter{Literature Review}
+\section{Background Study}
+\subsection{Timetable Management Systems}
+Timetable management systems have evolved from manual paper-based systems to sophisticated digital solutions. Key concepts include:
+
+\begin{itemize}
+    \item \textbf{Scheduling Algorithms:} Various approaches including:
+        \begin{itemize}
+            \item Genetic Algorithms
+            \item Constraint Programming
+            \item Graph Coloring
+        \end{itemize}
+    \item \textbf{Resource Allocation:} Efficient distribution of:
+        \begin{itemize}
+            \item Classrooms and Labs
+            \item Teaching Staff
+            \item Equipment
+        \end{itemize}
+    \item \textbf{Conflict Resolution:} Methods for handling:
+        \begin{itemize}
+            \item Time Conflicts
+            \item Resource Conflicts
+            \item Teacher Availability
+        \end{itemize}
+\end{itemize}
+
+\subsection{Modern Web Technologies}
+The project utilizes current web technologies:
+
+\begin{itemize}
+    \item \textbf{Frontend:} React.js with TypeScript
+    \item \textbf{Backend:} Node.js and Express
+    \item \textbf{Database:} Appwrite Cloud
+    \item \textbf{Authentication:} JWT and OAuth2
+\end{itemize}
+
+\section{Literature Review}
+\subsection{Existing Solutions Analysis}
+Review of similar systems reveals common patterns and limitations:
+
+\begin{itemize}
+    \item \textbf{Traditional Systems:}
+        \begin{itemize}
+            \item Manual scheduling
+            \item Limited automation
+            \item Poor scalability
+        \end{itemize}
+    \item \textbf{Modern Solutions:}
+        \begin{itemize}
+            \item Automated scheduling
+            \item Cloud-based storage
+            \item Real-time updates
+        \end{itemize}
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.8]
+\begin{ganttchart}[
+    vgrid,
+    hgrid,
+    bar/.style={fill=primarycolor},
+    milestone/.style={fill=red},
+    x unit=0.7cm,
+    y unit chart=0.7cm
+]{1}{12}
+\gantttitle{Evolution of Timetable Systems}{12} \\
+\gantttitlelist{1,...,12}{1} \\
+\ganttbar{Manual Systems}{1}{3} \\
+\ganttbar{Basic Digital}{3}{6} \\
+\ganttbar{Web-Based}{5}{8} \\
+\ganttbar{Cloud Solutions}{7}{10} \\
+\ganttbar{AI-Powered}{9}{12}
+\end{ganttchart}
+\end{tikzpicture}
+\caption{Evolution of Timetable Management Systems}
+\label{fig:evolution}
+\end{figure}
+
+\subsection{Technology Stack Comparison}
+Analysis of various technology stacks:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm]
+\node (client) [block] {Client Layer};
+\node (api) [block, below of=client] {API Layer};
+\node (business) [block, below of=api] {Business Layer};
+\node (data) [block, below of=business] {Data Layer};
+
+\path [line] (client) -- (api);
+\path [line] (api) -- (business);
+\path [line] (business) -- (data);
+
+\node[right of=client, xshift=2cm] (react) [cloud] {React};
+\node[right of=api, xshift=2cm] (node) [cloud] {Node.js};
+\node[right of=business, xshift=2cm] (logic) [cloud] {Services};
+\node[right of=data, xshift=2cm] (db) [cloud] {Appwrite};
+
+\path [line] (client) -- (react);
+\path [line] (api) -- (node);
+\path [line] (business) -- (logic);
+\path [line] (data) -- (db);
+\end{tikzpicture}
+\caption{Technology Stack Architecture}
+\label{fig:tech-stack}
+\end{figure}
+
+\chapter{System Analysis and Design}
+\section{System Analysis}
+\subsection{Requirement Analysis}
+\begin{enumerate}
+    \item \textbf{Functional Requirements}
+    \begin{itemize}
+        \item User authentication and authorization
+        \item Schedule creation and management
+        \item Automated conflict detection
+        \item Resource allocation
+        \item Notification system
+        \item Report generation
+        \item Schedule export functionality
+    \end{itemize}
+    
+    \item \textbf{Non-Functional Requirements}
+    \begin{itemize}
+        \item Performance: Response time < 2 seconds
+        \item Scalability: Support for 10,000 concurrent users
+        \item Availability: 99.9% uptime
+        \item Security: Data encryption and secure authentication
+        \item Usability: Intuitive interface design
+        \item Maintainability: Modular architecture
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Feasibility Analysis}
+\begin{enumerate}
+    \item \textbf{Technical Feasibility}
+    \begin{itemize}
+        \item Modern web technologies available
+        \item Cloud infrastructure support
+        \item Required development expertise
+        \item Existing libraries and frameworks
+    \end{itemize}
+    
+    \item \textbf{Operational Feasibility}
+    \begin{itemize}
+        \item User-friendly interface
+        \item Minimal training required
+        \item Automated processes
+        \item Regular maintenance schedule
+    \end{itemize}
+    
+    \item \textbf{Economic Feasibility}
+    \begin{itemize}
+        \item Development costs
+        \item Infrastructure costs
+        \item Maintenance costs
+        \item Return on investment
+    \end{itemize}
+    
+    \item \textbf{Schedule Feasibility}
+    \begin{itemize}
+        \item Development timeline
+        \item Resource availability
+        \item Milestone planning
+        \item Risk management
+    \end{itemize}
+\end{enumerate}
+
+\subsection{ER Diagram}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm, every edge/.style={link}]
+\tikzstyle{entity} = [rectangle, draw, fill=primarycolor!20]
+\tikzstyle{relationship} = [diamond, draw, fill=secondarycolor!20]
+\tikzstyle{attribute} = [ellipse, draw, fill=accentcolor!20]
+\tikzstyle{link} = [-latex', thick]
+
+% Entities
+\node[entity] (user) {User};
+\node[entity] (schedule) [right=of user] {Schedule};
+\node[entity] (room) [below=of user] {Room};
+\node[entity] (course) [below=of schedule] {Course};
+
+% Relationships
+\draw[link] (user) -- (schedule) node[midway, above] {creates};
+\draw[link] (schedule) -- (room) node[midway, above] {uses};
+\draw[link] (schedule) -- (course) node[midway, right] {belongs to};
+
+% Attributes
+\node[attribute] (userid) [above left=of user] {ID};
+\node[attribute] (username) [above=of user] {Name};
+\node[attribute] (scheduleid) [above=of schedule] {ID};
+\node[attribute] (roomid) [left=of room] {ID};
+\node[attribute] (courseid) [right=of course] {ID};
+
+\draw (user) -- (userid);
+\draw (user) -- (username);
+\draw (schedule) -- (scheduleid);
+\draw (room) -- (roomid);
+\draw (course) -- (courseid);
+\end{tikzpicture}
+\caption{Entity Relationship Diagram}
+\label{fig:erd}
+\end{figure}
+
+\subsection{Process Modeling}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=stealth]
+% Define participants
+\node (user) at (0,0) {User};
+\node (ui) at (3,0) {UI};
+\node (api) at (6,0) {API};
+\node (db) at (9,0) {Database};
+
+% Draw lifelines
+\draw[dashed] (user) -- (0,-6);
+\draw[dashed] (ui) -- (3,-6);
+\draw[dashed] (api) -- (6,-6);
+\draw[dashed] (db) -- (9,-6);
+
+% Draw interactions
+\draw[->] (0,-1) -- (3,-1) node[midway,above] {Create Schedule};
+\draw[->] (3,-1.5) -- (6,-1.5) node[midway,above] {API Request};
+\draw[->] (6,-2) -- (9,-2) node[midway,above] {Validate};
+\draw[<-] (6,-2.5) -- (9,-2.5) node[midway,above] {Response};
+\draw[->] (6,-3) -- (9,-3) node[midway,above] {Save};
+\draw[<-] (3,-3.5) -- (6,-3.5) node[midway,above] {Success};
+\draw[<-] (0,-4) -- (3,-4) node[midway,above] {Confirmation};
+
+% Add activation boxes
+\fill[gray!20] (2.8,-1) rectangle (3.2,-4);
+\fill[gray!20] (5.8,-1.5) rectangle (6.2,-3.5);
+\fill[gray!20] (8.8,-2) rectangle (9.2,-3);
+\end{tikzpicture}
+\caption{Schedule Creation Process}
+\label{fig:process}
+\end{figure}
+
+\section{System Design}
+\subsection{Architectural Design}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+\node (ui) [block] {UI Components};
+\node (auth) [block, below left=of ui] {Auth Service};
+\node (schedule) [block, below right=of ui] {Schedule Service};
+\node (api) [block, below=of auth] {API Gateway};
+\node (db) [block, below=of schedule] {Database};
+
+\path [line] (ui) -- (auth);
+\path [line] (ui) -- (schedule);
+\path [line] (auth) -- (api);
+\path [line] (schedule) -- (api);
+\path [line] (api) -- (db);
+
+% Add labels
+\node [above=0.1cm of ui] {Frontend};
+\node [left=0.1cm of auth] {Services};
+\node [below=0.1cm of db] {Storage};
+\end{tikzpicture}
+\caption{System Architecture}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Interface Design}
+The user interface follows modern design principles:
+
+\begin{itemize}
+    \item Clean and intuitive layout
+    \item Responsive design for all devices
+    \item Consistent color scheme and typography
+    \item Accessible components
+    \item Clear navigation structure
+\end{itemize}
+
+Key interface components:
+\begin{itemize}
+    \item Dashboard
+    \item Schedule Calendar
+    \item Room Management
+    \item User Management
+    \item Settings Panel
+\end{itemize}
+
+\chapter{Testing}
+\section{Test Cases for Unit Testing}
+\begin{longtable}{|p{3cm}|p{4cm}|p{4cm}|p{4cm}|}
+\hline
+\textbf{Component} & \textbf{Test Case} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+Authentication & Valid login credentials & Successful login & Passed \\
+\hline
+Authentication & Invalid password & Error message & Passed \\
+\hline
+Schedule Creation & Valid schedule data & Schedule created & Passed \\
+\hline
+Conflict Detection & Overlapping schedules & Conflict detected & Passed \\
+\hline
+Room Assignment & Valid room selection & Room assigned & Passed \\
+\hline
+\end{longtable}
+
+\section{Test Cases for System Testing}
+\begin{longtable}{|p{3cm}|p{4cm}|p{4cm}|p{4cm}|}
+\hline
+\textbf{Feature} & \textbf{Test Scenario} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+End-to-End Schedule & Create and view schedule & Schedule visible to all users & Passed \\
+\hline
+Notification System & Schedule update & Notifications sent & Passed \\
+\hline
+Data Export & Export to PDF & Valid PDF generated & Passed \\
+\hline
+Load Testing & 1000 concurrent users & Response time < 2s & Passed \\
+\hline
+Security & SQL injection attempt & Attack prevented & Passed \\
+\hline
+\end{longtable}
+
+\section{Performance Testing Results}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Number of Users},
+    ylabel={Response Time (ms)},
+    xmin=0, xmax=100,
+    ymin=0, ymax=1000,
+    xtick={0,20,40,60,80,100},
+    ytick={0,200,400,600,800,1000},
+    legend pos=north west,
+    ymajorgrids=true,
+    grid style=dashed,
+]
+\addplot[
+    color=primarycolor,
+    mark=square,
+    ]
+    coordinates {
+    (0,100)(20,150)(40,250)(60,400)(80,600)(100,850)
+    };
+\addplot[
+    color=secondarycolor,
+    mark=triangle,
+    ]
+    coordinates {
+    (0,80)(20,100)(40,150)(60,200)(80,300)(100,450)
+    };
+\legend{Without Optimization,With Optimization}
+\end{axis}
+\end{tikzpicture}
+\caption{Performance Test Results}
+\label{fig:performance}
+\end{figure}
+
+\chapter{Conclusion and Future Recommendations}
+\section{Lesson Learned / Outcome}
+Key learnings from the project:
+\begin{itemize}
+    \item Importance of proper requirement analysis
+    \item Value of automated testing
+    \item Need for scalable architecture
+    \item Significance of user feedback
+    \item Impact of proper documentation
+\end{itemize}
+
+\section{Conclusion}
+TimeTablePro successfully addresses the challenges of modern timetable management:
+\begin{itemize}
+    \item Automated scheduling reduces manual effort
+    \item Real-time updates improve communication
+    \item Conflict detection prevents scheduling errors
+    \item Intuitive interface enhances user experience
+    \item Scalable architecture ensures future growth
+\end{itemize}
+
+\section{Future Recommendations}
+Proposed future enhancements:
+\begin{itemize}
+    \item Mobile application development
+    \item Advanced AI-based scheduling
+    \item Integration with other systems
+    \item Enhanced reporting features
+    \item Offline functionality
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    xlabel={Development Phases},
+    ylabel={Priority Score},
+    symbolic x coords={Mobile App,AI Features,Integration,Reports,Offline Mode},
+    xtick=data,
+    nodes near coords,
+    nodes near coords align={vertical},
+    width=12cm,
+    height=8cm,
+    bar width=20pt,
+    ymin=0,
+    ymax=10,
+    axis lines*=left,
+    ymajorgrids=true,
+    grid style=dashed,
+]
+\addplot[fill=primarycolor!40] coordinates {
+    (Mobile App,8)
+    (AI Features,7)
+    (Integration,6)
+    (Reports,5)
+    (Offline Mode,4)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Future Development Priorities}
+\label{fig:priorities}
+\end{figure}
+
+\printbibliography
+
+\end{document} 

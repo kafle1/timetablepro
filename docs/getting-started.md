@@ -1,111 +1,62 @@
-# Getting Started with TimeTablePro
-
-## Table of Contents
-
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [First-Time Setup](#first-time-setup)
-- [Troubleshooting](#troubleshooting)
+# Getting Started
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+- Node.js v16+
+- Yarn
+- Appwrite Cloud account
 
-- Node.js (v18 or higher)
-- Yarn package manager
-- An Appwrite instance (v1.4 or higher)
-- Git
-
-## Installation
+## Quick Setup
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/timetablepro.git
-   cd timetablepro
-   ```
+```bash
+git clone https://github.com/yourusername/timetablepro.git
+cd timetablepro
+```
 
 2. Install dependencies:
-   ```bash
-   yarn install
-   ```
+```bash
+yarn install
+```
 
-## Configuration
+3. Configure environment:
+```bash
+cp .env.example .env
+# Update .env with your Appwrite credentials
+```
 
-1. Create environment file:
-   ```bash
-   cp .env.example .env
-   ```
+4. Start development server:
+```bash
+yarn dev
+```
 
-2. Configure Appwrite:
-   - Create a new project in Appwrite Console
-   - Enable Google OAuth:
-     - Go to Authentication > OAuth2 Providers
-     - Enable Google provider
-     - Add authorized domains
-     - Configure OAuth scopes:
-       - `openid`
-       - `profile`
-       - `email`
+Visit `http://localhost:3000` to see your app.
 
-3. Update `.env` with your Appwrite credentials:
-   ```env
-   VITE_APPWRITE_ENDPOINT=your-appwrite-endpoint
-   VITE_APPWRITE_PROJECT_ID=your-project-id
-   VITE_APPWRITE_DATABASE_ID=your-database-id
-   ```
+## Project Structure
 
-## Running the Application
+```
+timetablepro/
+├── src/
+│   ├── lib/        # Components and utilities
+│   └── routes/     # Pages
+├── static/         # Assets
+└── tests/         # Test files
+```
 
-1. Start development server:
-   ```bash
-   yarn dev
-   ```
+## Available Scripts
 
-2. Build for production:
-   ```bash
-   yarn build
-   ```
+- `yarn dev`: Start development server
+- `yarn build`: Build for production
+- `yarn test`: Run tests
+- `yarn lint`: Check code style
 
-3. Preview production build:
-   ```bash
-   yarn preview
-   ```
+## Next Steps
 
-## First-Time Setup
+1. Create an admin account
+2. Set up your first schedule
+3. Add rooms and resources
+4. Invite users
 
-1. Register an admin account:
-   - Visit `/register`
-   - Create account with admin role
-   - Configure initial settings
-
-2. Set up rooms and resources:
-   - Log in as admin
-   - Go to Room Management
-   - Add rooms with capacities
-
-3. Add teachers:
-   - Invite teachers via email
-   - Set availability
-
-## Troubleshooting
-
-### Common Issues
-
-1. OAuth Login Issues:
-   - Verify OAuth provider configuration
-   - Check authorized domains
-   - Ensure correct scopes are enabled
-
-2. Database Connection:
-   - Verify Appwrite credentials
-   - Check database permissions
-   - Ensure collections exist
-
-3. Build Errors:
-   - Clear node_modules and reinstall
-   - Update dependencies
-   - Check TypeScript errors
-
-For more detailed troubleshooting, see our [Troubleshooting Guide](troubleshooting.md). 
+For more details, see:
+- [API Reference](API.md)
+- [Deployment Guide](DEPLOYMENT.md) 

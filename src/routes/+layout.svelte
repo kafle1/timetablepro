@@ -8,6 +8,7 @@
 	import { ROUTES, USER_ROLES } from '$lib/config';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import type { User } from '$lib/types';
+	import { browser } from '$app/environment';
 
 	// Protected routes configuration
 	const protectedRoutes = [
@@ -31,22 +32,26 @@
 		try {
 			const user = await authService.getCurrentUser();
 			if (user) {
-				userStore.set(user);
+				userStore.setUser(user);
 			}
 		} catch (error) {
 			console.error('Error fetching user:', error);
 			// If we're not on a public route, redirect to login
-			if (!publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
+			if (browser && !publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
 				goto(ROUTES.LOGIN);
 			}
 		}
 	});
 
-	$: if ($page.url.pathname !== '/') {
-		handleRouteProtection($page.url.pathname, $userStore);
+	$: currentUser = $userStore?.user;
+	$: if (browser && $page.url.pathname !== '/') {
+		handleRouteProtection($page.url.pathname, currentUser);
 	}
 
 	function handleRouteProtection(path: string, user: User | null) {
+		// Skip if not in browser
+		if (!browser) return;
+		
 		// Allow public routes
 		if (!protectedRoutes.some(route => path.startsWith(route))) {
 			return;
@@ -80,14 +85,14 @@
 </script>
 
 <div class="min-h-screen bg-background text-foreground">
-	{#if $userStore}
+	{#if currentUser}
 		<header class="border-b border-border">
 			<div class="container flex items-center justify-between px-4 py-4 mx-auto">
 				<nav class="flex items-center space-x-6">
 					<a href="/" class="text-lg font-semibold">TimeTablePro</a>
-					{#if $userStore.role === USER_ROLES.ADMIN}
+					{#if currentUser.role === USER_ROLES.ADMIN}
 						<a href="/admin" class="hover:text-primary">Admin</a>
-					{:else if $userStore.role === USER_ROLES.TEACHER}
+					{:else if currentUser.role === USER_ROLES.TEACHER}
 						<a href="/teacher" class="hover:text-primary">Dashboard</a>
 					{:else}
 						<a href="/student" class="hover:text-primary">Dashboard</a>

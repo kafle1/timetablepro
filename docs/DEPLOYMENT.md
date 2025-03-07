@@ -1,137 +1,68 @@
-# TimetablePro Deployment Guide
-
-This guide provides detailed instructions for deploying TimetablePro to various environments.
-
-## Table of Contents
-
-- [Prerequisites](#prerequisites)
-- [Environment Setup](#environment-setup)
-- [Deployment Options](#deployment-options)
-  - [Vercel Deployment](#vercel-deployment)
-  - [Docker Deployment](#docker-deployment)
-  - [Manual Deployment](#manual-deployment)
-- [Database Setup](#database-setup)
-- [Monitoring and Maintenance](#monitoring-and-maintenance)
-- [Troubleshooting](#troubleshooting)
-- [Deployment Architecture](#deployment-architecture)
-- [CI/CD Workflow](#ci-cd-workflow)
+# Deployment Guide
 
 ## Prerequisites
 
-Before deploying, ensure you have:
-
-1. Node.js v16 or higher installed
-2. Yarn package manager
-3. Appwrite Cloud account
-4. Git installed
-5. Docker (optional, for containerized deployment)
+- Node.js v16+
+- Yarn
+- Appwrite Cloud account
+- Docker (optional)
 
 ## Environment Setup
 
-### 1. Environment Variables
-
-Create a `.env` file with the following variables:
-
+1. Create `.env` file:
 ```env
-# Appwrite Configuration
 PUBLIC_APPWRITE_PROJECT_ID=your-project-id
 PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
 APPWRITE_API_KEY=your-api-key
-
-# Application Configuration
-PUBLIC_APP_URL=https://your-domain.com
-NODE_ENV=production
 ```
 
-### 2. Build Configuration
+## Build
 
-Update `svelte.config.js` for production:
+```bash
+# Install dependencies
+yarn install
 
-```javascript
-const config = {
-  kit: {
-    adapter: adapter({
-      pages: 'build',
-      assets: 'build',
-      fallback: 'index.html',
-      precompress: true
-    })
-  }
-};
+# Build for production
+yarn build
 ```
 
 ## Deployment Options
 
-### Vercel Deployment
+### 1. Docker
 
-1. Push your code to GitHub
+```bash
+# Build image
+docker build -t timetablepro .
 
-2. Connect your repository to Vercel:
-   - Go to vercel.com
-   - Create a new project
-   - Select your repository
-   - Configure build settings:
-     ```
-     Build Command: yarn build
-     Output Directory: build
-     Install Command: yarn install
-     ```
+# Run container
+docker run -p 3000:3000 timetablepro
+```
 
-3. Configure environment variables in Vercel dashboard
+### 2. Node.js Server
 
-4. Deploy:
-   ```bash
-   vercel --prod
-   ```
+```bash
+# Start production server
+yarn start
+```
 
-### Docker Deployment
+### 3. Static Hosting
 
-1. Build the Docker image:
-   ```bash
-   docker build -t timetablepro .
-   ```
+Deploy the `build` directory to any static hosting service:
+- Vercel
+- Netlify
+- GitHub Pages
 
-2. Run the container:
-   ```bash
-   docker run -p 3000:3000 \
-     -e PUBLIC_APPWRITE_PROJECT_ID=your-project-id \
-     -e PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1 \
-     -e APPWRITE_API_KEY=your-api-key \
-     timetablepro
-   ```
+## Health Checks
 
-### Manual Deployment
+- `/health`: Server health check
+- `/api/health`: API health check
 
-1. Build the application:
-   ```bash
-   yarn build
-   ```
+## Monitoring
 
-2. Set up a Node.js server:
-   ```javascript
-   // server.js
-   const express = require('express');
-   const compression = require('compression');
-   const path = require('path');
-
-   const app = express();
-   app.use(compression());
-   app.use(express.static('build'));
-
-   app.get('*', (req, res) => {
-     res.sendFile(path.resolve(__dirname, 'build', 'index.html'));
-   });
-
-   const PORT = process.env.PORT || 3000;
-   app.listen(PORT, () => {
-     console.log(`Server running on port ${PORT}`);
-   });
-   ```
-
-3. Start the server:
-   ```bash
-   node server.js
-   ```
+Monitor your application using:
+- Server logs
+- Appwrite Console
+- Application metrics dashboard
 
 ## Database Setup
 
