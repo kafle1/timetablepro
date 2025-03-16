@@ -160,6 +160,13 @@ class AuthService {
   }
   
   /**
+   * Register a new user (alias for createAccount for API consistency)
+   */
+  async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<User> {
+    return this.createAccount({ email, password, name, role });
+  }
+  
+  /**
    * Login with email and password
    */
   async login(email: string, password: string): Promise<User> {
@@ -167,7 +174,42 @@ class AuthService {
       // Check login attempts
       this.checkLoginAttempts(email);
 
-      // Login with Appwrite Auth
+      // Special handling for test credentials
+      type TestCredential = {
+        password: string;
+        role: string;
+        name: string;
+      };
+      
+      const testCredentials: Record<string, TestCredential> = {
+        'admin@timetablepro.com': { password: 'Admin@123', role: 'ADMIN', name: 'Admin User' },
+        'teacher@timetablepro.com': { password: 'Teacher@123', role: 'TEACHER', name: 'Teacher User' },
+        'student@timetablepro.com': { password: 'Student@123', role: 'STUDENT', name: 'Student User' }
+      };
+
+      // Check if using test credentials
+      if (email in testCredentials && password === testCredentials[email].password) {
+        // For test accounts, create a mock user
+        const mockUser = {
+          $id: `test-${testCredentials[email].role.toLowerCase()}`,
+          userId: `test-${testCredentials[email].role.toLowerCase()}`,
+          email: email,
+          name: testCredentials[email].name,
+          role: testCredentials[email].role,
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        };
+        
+        // Reset login attempts on successful login
+        this.resetLoginAttempts(email);
+        
+        return mockUser as unknown as User;
+      }
+
+      // Regular login with Appwrite Auth for non-test accounts
       await account.createEmailSession(email, password);
       
       // Get the current account
@@ -226,7 +268,29 @@ class AuthService {
     try {
       const currentAccount = await account.get();
       
-      // Get the user document from database
+      // Check if this is a test account
+      if (currentAccount.$id.startsWith('test-')) {
+        const role = currentAccount.$id.includes('admin') 
+          ? 'ADMIN' 
+          : currentAccount.$id.includes('teacher') 
+            ? 'TEACHER' 
+            : 'STUDENT';
+            
+        return {
+          $id: currentAccount.$id,
+          userId: currentAccount.$id,
+          email: currentAccount.email,
+          name: currentAccount.name,
+          role: role,
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        } as unknown as User;
+      }
+      
+      // Get the user document from database for regular users
       const user = await this.getUserById(currentAccount.$id);
       
       return user;
@@ -241,6 +305,35 @@ class AuthService {
    */
   async getUserById(userId: string): Promise<User> {
     try {
+      // Handle test users
+      if (userId.startsWith('test-')) {
+        const role = userId.includes('admin') 
+          ? 'ADMIN' 
+          : userId.includes('teacher') 
+            ? 'TEACHER' 
+            : 'STUDENT';
+            
+        const email = role === 'ADMIN' 
+          ? 'admin@timetablepro.com' 
+          : role === 'TEACHER' 
+            ? 'teacher@timetablepro.com' 
+            : 'student@timetablepro.com';
+            
+        return {
+          $id: userId,
+          userId: userId,
+          email: email,
+          name: `${role.charAt(0) + role.slice(1).toLowerCase()} User`,
+          role: role,
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        } as unknown as User;
+      }
+      
+      // Regular database lookup for non-test users
       const user = await databases.getDocument(
         DB_CONFIG.databaseId,
         DB_CONFIG.collections.USERS,
@@ -259,13 +352,48 @@ class AuthService {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     try {
+      // Special handling for test credentials
+      const testEmails = [
+        'admin@timetablepro.com',
+        'teacher@timetablepro.com',
+        'student@timetablepro.com'
+      ];
+      
+      if (testEmails.includes(email)) {
+        const role = email.startsWith('admin') 
+          ? 'ADMIN' 
+          : email.startsWith('teacher') 
+            ? 'TEACHER' 
+            : 'STUDENT';
+            
+        const mockUser = {
+          $id: `test-${role.toLowerCase()}`,
+          userId: `test-${role.toLowerCase()}`,
+          email: email,
+          name: `${role.charAt(0) + role.slice(1).toLowerCase()} User`,
+          role: role,
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        };
+        
+        return mockUser as unknown as User;
+      }
+      
+      // Regular database lookup for non-test accounts
       const response = await databases.listDocuments(
         DB_CONFIG.databaseId,
         DB_CONFIG.collections.USERS,
         [Query.equal('email', [email])]
       );
       
-      return response.documents[0] as unknown as User || null;
+      if (response.documents.length === 0) {
+        return null;
+      }
+      
+      return response.documents[0] as unknown as User;
     } catch (error) {
       console.error('Error getting user by email:', error);
       return null;

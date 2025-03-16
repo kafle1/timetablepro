@@ -74,3 +74,29 @@
 	on:mouseleave
 	{...$$restProps}
 />
+
+<style>
+	/* Ensure inputs display correctly across browsers */
+	:global(input) {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		box-sizing: border-box;
+		margin: 0;
+	}
+	
+	/* Fix for iOS Safari */
+	:global(input[type="text"]),
+	:global(input[type="email"]),
+	:global(input[type="password"]),
+	:global(input[type="search"]),
+	:global(input[type="number"]) {
+		border-radius: 0.375rem;
+		min-height: 2.5rem;
+	}
+	
+	/* Fix for dark mode */
+	:global(.dark input) {
+		color-scheme: dark;
+	}
+</style>

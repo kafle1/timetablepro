@@ -14,7 +14,8 @@
 		"format": "prettier --write .",
 		"init-db": "bun run scripts/init-appwrite.ts",
 		"cleanup-db": "bun run scripts/cleanup-appwrite.ts",
-		"init:appwrite": "ts-node scripts/init-appwrite.ts"
+		"init:appwrite": "ts-node scripts/init-appwrite.ts",
+		"create-test-users": "bun run scripts/create-test-users.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
