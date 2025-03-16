@@ -55,4 +55,4 @@
     on:keyup
     on:input={autosize ? adjustHeight : undefined}
     {...$$restProps}
-/> 
+></textarea> 

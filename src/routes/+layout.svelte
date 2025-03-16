@@ -30,15 +30,30 @@
 
 	onMount(async () => {
 		try {
+			// Check if we're on a public route first
+			if (browser && publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
+				// Don't try to get the current user on public routes
+				return;
+			}
+			
+			// Try to get the current user
 			const user = await authService.getCurrentUser();
+			
 			if (user) {
 				userStore.setUser(user);
+			} else {
+				// If we're not on a public route, redirect to login
+				if (browser) {
+					// Use direct window location for more reliable navigation
+					window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent($page.url.pathname)}`;
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching user:', error);
 			// If we're not on a public route, redirect to login
 			if (browser && !publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
-				goto(ROUTES.LOGIN);
+				// Use direct window location for more reliable navigation
+				window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent($page.url.pathname)}`;
 			}
 		}
 	});
@@ -59,7 +74,8 @@
 
 		// Redirect to login if not authenticated
 		if (!user) {
-			goto(ROUTES.LOGIN);
+			// Use direct window location for more reliable navigation
+			window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent(path)}`;
 			return;
 		}
 
@@ -69,16 +85,16 @@
 			// Redirect to appropriate dashboard
 			switch (user.role) {
 				case USER_ROLES.ADMIN:
-					goto(ROUTES.ADMIN_DASHBOARD);
+					window.location.href = ROUTES.ADMIN_DASHBOARD;
 					break;
 				case USER_ROLES.TEACHER:
-					goto(ROUTES.TEACHER_DASHBOARD);
+					window.location.href = ROUTES.TEACHER_DASHBOARD;
 					break;
 				case USER_ROLES.STUDENT:
-					goto(ROUTES.STUDENT_DASHBOARD);
+					window.location.href = ROUTES.STUDENT_DASHBOARD;
 					break;
 				default:
-					goto(ROUTES.LOGIN);
+					window.location.href = ROUTES.LOGIN;
 			}
 		}
 	}

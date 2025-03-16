@@ -1,4 +1,5 @@
 import { Client, Account, Databases } from 'appwrite';
+import { browser } from '$app/environment';
 
 // Initialize Appwrite client
 const createClient = () => {
@@ -14,6 +15,15 @@ const createClient = () => {
 
         client.setEndpoint(endpoint);
         client.setProject(projectId);
+        
+        // Set the correct locale for browser environments
+        if (browser) {
+            client.setLocale('en-US');
+            
+            // Note: For better security, consider using a custom domain
+            // to enable cookie-based sessions instead of localStorage
+        }
+        
         return client;
     } catch (error) {
         console.error('Error initializing Appwrite client:', error);
@@ -37,6 +47,25 @@ export const DB_CONFIG = {
         TEACHER_AVAILABILITY: import.meta.env.VITE_APPWRITE_TEACHER_AVAILABILITY_COLLECTION_ID || 'teacher_availability'
     }
 } as const;
+
+// Validate critical configuration
+const validateConfig = () => {
+    if (!DB_CONFIG.databaseId) {
+        console.error('Missing database ID in configuration');
+    }
+    
+    // Log warnings for missing collection IDs
+    Object.entries(DB_CONFIG.collections).forEach(([key, value]) => {
+        if (!value) {
+            console.warn(`Missing collection ID for ${key}, using default value`);
+        }
+    });
+};
+
+// Run validation in browser environment
+if (browser) {
+    validateConfig();
+}
 
 // Collection schemas
 export const COLLECTIONS = {

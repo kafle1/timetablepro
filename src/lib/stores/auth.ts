@@ -38,27 +38,74 @@ function createAuthStore() {
         login: async (email: string, password: string, redirectTo?: string) => {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
-                await account.createEmailSession(email, password);
-                const accountDetails = await account.get();
                 
-                // Get user from database
-                const response = await databases.listDocuments(
-                    DB_CONFIG.databaseId,
-                    DB_CONFIG.collections.USERS,
-                    [Query.equal('email', [accountDetails.email])]
-                );
+                // Special handling for test accounts
+                const testCredentials: Record<string, { role: string; name: string }> = {
+                    'admin@timetablepro.com': { role: 'ADMIN', name: 'Admin User' },
+                    'teacher@timetablepro.com': { role: 'TEACHER', name: 'Teacher User' },
+                    'student@timetablepro.com': { role: 'STUDENT', name: 'Student User' }
+                };
                 
-                const user = response.documents[0] as User;
-                if (!user) {
-                    throw new Error('User not found in database');
+                let user: User;
+                
+                // Check if using test credentials
+                if (email in testCredentials) {
+                    try {
+                        // Try to create a session
+                        await account.createEmailSession(email, password);
+                        
+                        // Create a mock user for test accounts
+                        const mockUser = {
+                            $id: `test-${testCredentials[email].role.toLowerCase()}`,
+                            userId: `test-${testCredentials[email].role.toLowerCase()}`,
+                            email: email,
+                            name: testCredentials[email].name,
+                            role: testCredentials[email].role,
+                            isActive: true,
+                            emailVerified: true,
+                            preferences: {},
+                            createdAt: new Date().toISOString(),
+                            lastLoginAt: new Date().toISOString(),
+                            // Add required Appwrite properties
+                            $collectionId: DB_CONFIG.collections.USERS,
+                            $databaseId: DB_CONFIG.databaseId,
+                            $createdAt: new Date().toISOString(),
+                            $updatedAt: new Date().toISOString(),
+                            $permissions: []
+                        } as unknown as User;
+                        
+                        user = mockUser;
+                    } catch (error) {
+                        console.error('Error creating session for test account:', error);
+                        throw new Error('Invalid email or password');
+                    }
+                } else {
+                    // Regular login flow
+                    await account.createEmailSession(email, password);
+                    const accountDetails = await account.get();
+                    
+                    // Get user from database
+                    const response = await databases.listDocuments(
+                        DB_CONFIG.databaseId,
+                        DB_CONFIG.collections.USERS,
+                        [Query.equal('email', [accountDetails.email])]
+                    );
+                    
+                    if (response.documents.length === 0) {
+                        throw new Error('User not found in database');
+                    }
+                    
+                    user = response.documents[0] as unknown as User;
                 }
 
                 set({ user, loading: false, error: null });
                 
                 if (browser) {
-                    const route = redirectTo || getDashboardRoute(user.role);
-                    await goto(route);
+                    console.log('Redirecting to:', redirectTo || getDashboardRoute(user.role));
+                    await goto(redirectTo || getDashboardRoute(user.role));
                 }
+                
+                return user;
             } catch (error) {
                 console.error('Login error:', error);
                 update(state => ({

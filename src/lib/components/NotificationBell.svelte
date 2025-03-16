@@ -2,26 +2,35 @@
 <script lang="ts">
     import { notificationStore } from '$lib/stores/notificationStore';
     import { userStore } from '$lib/stores/userStore';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { Bell } from 'lucide-svelte';
     import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '$lib/components/ui/dropdown-menu';
 
     let showPanel = false;
+    let cleanup: (() => void) | undefined;
 
     onMount(() => {
-        const unsubscribe = userStore.subscribe(user => {
-            if (user) {
-                notificationStore.init(user.userId);
+        const unsubscribe = userStore.subscribe(userState => {
+            if (userState.user) {
+                // Initialize notification store with user ID
+                cleanup = notificationStore.init(userState.user.userId);
             } else {
                 notificationStore.clear();
             }
         });
 
-        return unsubscribe;
+        return () => {
+            unsubscribe();
+            if (cleanup) cleanup();
+        };
+    });
+
+    onDestroy(() => {
+        if (cleanup) cleanup();
     });
 
     function handleMarkAllAsRead() {
-        const user = $userStore;
+        const user = $userStore.user;
         if (user) {
             notificationStore.markAllAsRead(user.userId);
         }
@@ -118,8 +127,8 @@
                     {#each $notificationStore.notifications as notification (notification.$id)}
                         <div
                             class="p-4 transition-colors border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            class:bg-gray-50={notification.status === 'unread'}
-                            class:dark:bg-gray-800={notification.status === 'unread'}
+                            class:bg-gray-50={!notification.isRead}
+                            class:dark:bg-gray-800={!notification.isRead}
                         >
                             <div class="flex items-start justify-between gap-4">
                                 <div class="flex-1">
@@ -127,11 +136,11 @@
                                         {notification.message}
                                     </p>
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        {formatTimestamp(notification.timestamp)}
+                                        {formatTimestamp(notification.$createdAt)}
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    {#if notification.status === 'unread'}
+                                    {#if !notification.isRead}
                                         <button
                                             class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                                             on:click={() => handleMarkAsRead(notification.$id)}

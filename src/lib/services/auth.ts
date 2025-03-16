@@ -171,10 +171,12 @@ class AuthService {
    */
   async login(email: string, password: string): Promise<User> {
     try {
-      // Check login attempts
-      this.checkLoginAttempts(email);
+      // Check if user is locked out
+      if (!this.checkLoginAttempts(email)) {
+        throw new Error(`Too many failed login attempts. Please try again in 15 minutes.`);
+      }
 
-      // Special handling for test credentials
+      // Special handling for test accounts
       type TestCredential = {
         password: string;
         role: string;
@@ -203,6 +205,26 @@ class AuthService {
           lastLoginAt: new Date().toISOString()
         };
         
+        // Create a session for the test user
+        try {
+          // First try to delete any existing session
+          try {
+            // Check if there's an existing session before trying to delete it
+            const hasSession = localStorage.getItem('cookieFallback') !== null;
+            if (hasSession) {
+              await account.deleteSession('current');
+            }
+          } catch (e) {
+            // Ignore errors when no session exists
+          }
+          
+          // Create a new session
+          await account.createEmailSession(email, password);
+        } catch (sessionError) {
+          console.error('Error creating session for test user:', sessionError);
+          // Continue anyway since we're using a mock user
+        }
+        
         // Reset login attempts on successful login
         this.resetLoginAttempts(email);
         
@@ -210,31 +232,53 @@ class AuthService {
       }
 
       // Regular login with Appwrite Auth for non-test accounts
+      
+      // First try to delete any existing session to prevent conflicts
+      try {
+        const hasSession = localStorage.getItem('cookieFallback') !== null;
+        if (hasSession) {
+          await account.deleteSession('current');
+        }
+      } catch (e) {
+        // Ignore errors when no session exists
+      }
+      
+      // Create new session
       await account.createEmailSession(email, password);
       
       // Get the current account
       const currentAccount = await account.get();
       
       // Get the user document from database
-      const user = await this.getUserById(currentAccount.$id);
+      let user;
+      try {
+        user = await this.getUserById(currentAccount.$id);
+      } catch (error) {
+        // If user document doesn't exist, create one
+        console.log('User document not found, creating one for the user');
+        user = await this.createUserForAccount(currentAccount, 'STUDENT'); // Default to student role
+      }
 
       // Update last login timestamp
       await databases.updateDocument(
         DB_CONFIG.databaseId,
         DB_CONFIG.collections.USERS,
         user.$id,
-        { lastLoginAt: new Date().toISOString() }
+        {
+          lastLoginAt: new Date().toISOString()
+        }
       );
-
+      
       // Reset login attempts on successful login
       this.resetLoginAttempts(email);
       
       return user;
-    } catch (error) {
-      // Increment failed login attempts
+    } catch (error: any) {
+      // Increment login attempts on failure
       this.incrementLoginAttempts(email);
-
-      console.error('Error logging in:', error);
+      
+      console.error('Login error:', error);
+      
       if (error instanceof AppwriteException) {
         switch (error.code) {
           case 401:
@@ -242,9 +286,10 @@ class AuthService {
           case 429:
             throw new Error('Too many login attempts. Please try again later.');
           default:
-            throw new Error('Login failed. Please try again.');
+            throw new Error(`Login failed: ${error.message}`);
         }
       }
+      
       throw error;
     }
   }
@@ -254,49 +299,231 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await account.deleteSession('current');
+      // Check if there's an existing session before trying to delete it
+      const hasSession = browser && localStorage.getItem('cookieFallback') !== null;
+      
+      if (hasSession) {
+        try {
+          await account.deleteSession('current');
+        } catch (error: any) {
+          // If it's a 401 error, the session is already invalid
+          if (error.code !== 401) {
+            console.error('Error deleting session:', error);
+          }
+        }
+      }
+      
+      // Clear any local storage items related to authentication
+      if (browser) {
+        localStorage.removeItem('cookieFallback');
+        // Don't remove rememberedEmail as that's a user preference
+      }
+      
+      // Redirect to login page
+      if (browser) {
+        // Use direct window location for more reliable navigation
+        window.location.href = '/login?success=logout';
+      }
     } catch (error) {
-      console.error('Logout error:', error);
-      throw new Error('Failed to logout. Please try again.');
+      console.error('Error during logout:', error);
+      // Still redirect to login page even if there was an error
+      if (browser) {
+        window.location.href = '/login?error=logout_failed';
+      }
     }
   }
   
   /**
    * Get the current user
    */
-  async getCurrentUser(): Promise<User | null> {
+  async getCurrentUser(retryCount = 0): Promise<User | null> {
+    // Prevent infinite recursion
+    if (retryCount > 2) {
+      console.error('Maximum retry count reached, returning null');
+      return null;
+    }
+    
     try {
-      const currentAccount = await account.get();
-      
-      // Check if this is a test account
-      if (currentAccount.$id.startsWith('test-')) {
-        const role = currentAccount.$id.includes('admin') 
-          ? 'ADMIN' 
-          : currentAccount.$id.includes('teacher') 
-            ? 'TEACHER' 
-            : 'STUDENT';
-            
-        return {
-          $id: currentAccount.$id,
-          userId: currentAccount.$id,
-          email: currentAccount.email,
-          name: currentAccount.name,
-          role: role,
-          isActive: true,
-          emailVerified: true,
-          preferences: {},
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString()
-        } as unknown as User;
+      // Check if we're in a browser environment
+      if (!browser) {
+        return null;
       }
       
-      // Get the user document from database for regular users
-      const user = await this.getUserById(currentAccount.$id);
+      // Check localStorage for a session token first
+      const hasSession = localStorage.getItem('cookieFallback') !== null;
+      if (!hasSession) {
+        return null;
+      }
       
-      return user;
-    } catch (error) {
+      try {
+        const currentAccount = await account.get();
+        
+        // Check if this is a test account
+        if (currentAccount.$id.startsWith('test-')) {
+          const role = currentAccount.$id.includes('admin') 
+            ? 'ADMIN' 
+            : currentAccount.$id.includes('teacher') 
+              ? 'TEACHER' 
+              : 'STUDENT';
+              
+          return {
+            $id: currentAccount.$id,
+            userId: currentAccount.$id,
+            email: currentAccount.email,
+            name: currentAccount.name,
+            role: role,
+            isActive: true,
+            emailVerified: true,
+            preferences: {},
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString()
+          } as unknown as User;
+        }
+        
+        // Get the user document from database for regular users
+        try {
+          const user = await this.getUserById(currentAccount.$id);
+          return user;
+        } catch (error) {
+          // If user document doesn't exist but session does, create the user document
+          console.log('User document not found, creating one for the anonymous user');
+          return await this.createUserForAnonymousSession(currentAccount);
+        }
+      } catch (error: any) {
+        // Only log the error if it's not a 401 (unauthorized)
+        if (!error || error.code !== 401) {
+          console.error('Error getting current account:', error);
+        }
+        
+        // Handle browser extension errors
+        if (error && (
+            (error.message && (
+              error.message.includes('message port closed') || 
+              error.message.includes('back/forward cache') ||
+              error.message.includes('runtime.lastError')
+            )) || 
+            (error.toString && error.toString().includes('runtime.lastError'))
+        )) {
+          console.warn('Browser extension may be interfering with session retrieval, retrying...');
+          // Wait a moment and retry
+          return new Promise((resolve) => {
+            setTimeout(async () => {
+              try {
+                const result = await this.getCurrentUser(retryCount + 1);
+                resolve(result);
+              } catch (retryError) {
+                console.error('Failed to get current user on retry:', retryError);
+                resolve(null);
+              }
+            }, 300); // Increased timeout for better reliability
+          });
+        }
+        
+        return null;
+      }
+    } catch (error: any) {
+      // Log detailed error information
+      console.error('Error in getCurrentUser:', error);
+      
       // If no session exists, return null
       return null;
+    }
+  }
+  
+  /**
+   * Create an anonymous session
+   */
+  async createAnonymousSession(): Promise<void> {
+    try {
+      // First check if we already have a session
+      try {
+        await account.get();
+        console.log('Session already exists, skipping anonymous session creation');
+        return;
+      } catch (error: any) {
+        // Only create a new session if we got a 401 error (unauthorized)
+        if (error && error.code === 401) {
+          // Clear any existing session data first
+          localStorage.removeItem('cookieFallback');
+          
+          try {
+            // Create anonymous session
+            await account.createAnonymousSession();
+            console.log('Anonymous session created successfully');
+          } catch (sessionError) {
+            console.error('Failed to create anonymous session:', sessionError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in createAnonymousSession:', error);
+    }
+  }
+  
+  /**
+   * Create a user document for an anonymous session
+   */
+  async createUserForAnonymousSession(accountDetails: any): Promise<User> {
+    try {
+      console.log('Creating user document for anonymous session');
+      
+      // Create a new user document for the anonymous user with only required fields
+      // Remove fields that might not exist in the collection schema
+      const userData = {
+        userId: accountDetails.$id,
+        email: accountDetails.email || `anonymous-${accountDetails.$id}@example.com`,
+        name: accountDetails.name || 'Anonymous User',
+        role: 'STUDENT', // Default role for anonymous users
+      };
+      
+      try {
+        const user = await databases.createDocument(
+          DB_CONFIG.databaseId,
+          DB_CONFIG.collections.USERS,
+          accountDetails.$id,
+          userData
+        ) as unknown as User;
+        
+        console.log('User document created for anonymous session:', user);
+        return user;
+      } catch (error: any) {
+        // If there's an error with the document structure, try with even fewer fields
+        if (error.message && error.message.includes('Invalid document structure')) {
+          console.log('Trying with minimal fields due to schema mismatch');
+          
+          // Try with absolute minimum fields
+          const minimalUserData = {
+            userId: accountDetails.$id,
+            email: accountDetails.email || `anonymous-${accountDetails.$id}@example.com`,
+            name: accountDetails.name || 'Anonymous User',
+          };
+          
+          const user = await databases.createDocument(
+            DB_CONFIG.databaseId,
+            DB_CONFIG.collections.USERS,
+            accountDetails.$id,
+            minimalUserData
+          ) as unknown as User;
+          
+          console.log('User document created with minimal fields:', user);
+          return user;
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error creating user document for anonymous session:', error);
+      
+      // Return a mock user as fallback to prevent infinite loops
+      console.log('Returning mock user as fallback');
+      return {
+        $id: accountDetails.$id,
+        userId: accountDetails.$id,
+        email: accountDetails.email || `anonymous-${accountDetails.$id}@example.com`,
+        name: accountDetails.name || 'Anonymous User',
+        role: 'STUDENT',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      } as unknown as User;
     }
   }
   
@@ -668,6 +895,37 @@ class AuthService {
     } catch (error) {
       console.error('OAuth callback error:', error);
       throw new Error('Failed to complete authentication. Please try again.');
+    }
+  }
+
+  /**
+   * Create a user document for an account
+   */
+  async createUserForAccount(accountData: any, role: keyof typeof USER_ROLES): Promise<User> {
+    try {
+      const userData = {
+        userId: accountData.$id,
+        email: accountData.email,
+        name: accountData.name || accountData.email.split('@')[0],
+        role,
+        isActive: true,
+        emailVerified: accountData.emailVerification,
+        preferences: {},
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      };
+      
+      const userDoc = await databases.createDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        accountData.$id,
+        userData
+      );
+      
+      return userDoc as unknown as User;
+    } catch (error) {
+      console.error('Error creating user document:', error);
+      throw new Error('Failed to create user document.');
     }
   }
 }

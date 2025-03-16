@@ -91,6 +91,16 @@
             success = null;
             loading = true;
 
+            // Clear any existing session data first
+            if (localStorage.getItem('cookieFallback')) {
+                try {
+                    await authService.logout();
+                } catch (e) {
+                    // Ignore errors during logout
+                    console.log('Error during pre-login logout:', e);
+                }
+            }
+
             const user = await authService.login(email, password);
 
             // Store email in localStorage if remember me is checked
@@ -102,7 +112,8 @@
 
             // Redirect to the requested page or dashboard
             if (redirectTo) {
-                goto(redirectTo);
+                console.log('Redirecting to requested page:', redirectTo);
+                window.location.href = redirectTo;
             } else {
                 // Default redirection based on user role
                 const dashboardRoute = user.role === 'ADMIN' 
@@ -111,8 +122,8 @@
                         ? ROUTES.TEACHER_DASHBOARD 
                         : ROUTES.STUDENT_DASHBOARD;
                 
-                console.log('Redirecting to:', dashboardRoute);
-                goto(dashboardRoute);
+                console.log('Redirecting to dashboard:', dashboardRoute);
+                window.location.href = dashboardRoute;
             }
         } catch (err: any) {
             console.error('Login error:', err);
@@ -276,7 +287,7 @@
 
             <div class="relative my-6">
                 <div class="absolute inset-0 flex items-center">
-                    <span class="w-full border-t border-border/60" />
+                    <span class="w-full border-t border-border/60"></span>
                 </div>
                 <div class="relative flex justify-center text-xs uppercase">
                     <span class="px-2 bg-background text-muted-foreground">Or continue with</span>
