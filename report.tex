@@ -140,9 +140,9 @@
     \vspace{0.3cm}
     {\large Submitted by\par}
     \vspace{0.2cm}
-    {\Large \textbf{Student Name}\par}
+    {\Large \textbf{Niraj Kafle}\par}
     {\Large BIT 5th Semester\par}
-    {\Large University ID: LC000300XXXX\par}
+    {\Large University ID: LC0003001674\par}
     \vspace{0.5cm}
     {\large \textbf{2025/03/05}\par}
 \end{titlepage}
@@ -154,9 +154,9 @@
 
 \chapter{Introduction}
 \section{Background}
-In today's educational institutions, efficient timetable management is crucial for smooth operations. Traditional manual scheduling methods are time-consuming, error-prone, and often result in conflicts. TimeTablePro addresses these challenges by providing a modern, automated solution for timetable management.
+In today's educational institutions, efficient timetable management is crucial for smooth operations \cite{timetable_systems}. Traditional manual scheduling methods are time-consuming, error-prone, and often result in conflicts. TimeTablePro addresses these challenges by providing a modern, automated solution for timetable management.
 
-The education sector has seen significant digital transformation in recent years, yet many institutions still struggle with efficient schedule management. This project aims to bridge this gap by leveraging modern web technologies and intelligent algorithms to create a robust timetable management system.
+The education sector has seen significant digital transformation in recent years, yet many institutions still struggle with efficient schedule management \cite{scheduling_algorithms}. This project aims to bridge this gap by leveraging modern web technologies and intelligent algorithms to create a robust timetable management system.
 
 \section{Problem Statement}
 Educational institutions face several challenges in timetable management:
@@ -214,7 +214,7 @@ This report is organized into the following chapters:
 \chapter{Literature Review}
 \section{Background Study}
 \subsection{Timetable Management Systems}
-Timetable management systems have evolved from manual paper-based systems to sophisticated digital solutions. Key concepts include:
+Timetable management systems have evolved from manual paper-based systems to sophisticated digital solutions \cite{timetable_systems}. Key concepts include:
 
 \begin{itemize}
     \item \textbf{Scheduling Algorithms:} Various approaches including:
@@ -233,18 +233,20 @@ Timetable management systems have evolved from manual paper-based systems to sop
         \begin{itemize}
             \item Time Conflicts
             \item Resource Conflicts
-            \item Teacher Availability
+            \item Teacher Availability \cite{resource_allocation}
         \end{itemize}
 \end{itemize}
 
 \subsection{Modern Web Technologies}
-The project utilizes current web technologies:
+The project utilizes current web technologies \cite{web_development}:
 
 \begin{itemize}
-    \item \textbf{Frontend:} React.js with TypeScript
-    \item \textbf{Backend:} Node.js and Express
+    \item \textbf{Frontend:} SvelteKit with TypeScript
+    \item \textbf{Backend:} SvelteKit API routes with Appwrite
     \item \textbf{Database:} Appwrite Cloud
-    \item \textbf{Authentication:} JWT and OAuth2
+    \item \textbf{Authentication:} Appwrite Authentication
+    \item \textbf{UI Framework:} Tailwind CSS
+    \item \textbf{Calendar:} FullCalendar.js
 \end{itemize}
 
 \section{Literature Review}
@@ -288,35 +290,6 @@ Review of similar systems reveals common patterns and limitations:
 \end{tikzpicture}
 \caption{Evolution of Timetable Management Systems}
 \label{fig:evolution}
-\end{figure}
-
-\subsection{Technology Stack Comparison}
-Analysis of various technology stacks:
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[node distance=1.5cm]
-\node (client) [block] {Client Layer};
-\node (api) [block, below of=client] {API Layer};
-\node (business) [block, below of=api] {Business Layer};
-\node (data) [block, below of=business] {Data Layer};
-
-\path [line] (client) -- (api);
-\path [line] (api) -- (business);
-\path [line] (business) -- (data);
-
-\node[right of=client, xshift=2cm] (react) [cloud] {React};
-\node[right of=api, xshift=2cm] (node) [cloud] {Node.js};
-\node[right of=business, xshift=2cm] (logic) [cloud] {Services};
-\node[right of=data, xshift=2cm] (db) [cloud] {Appwrite};
-
-\path [line] (client) -- (react);
-\path [line] (api) -- (node);
-\path [line] (business) -- (logic);
-\path [line] (data) -- (db);
-\end{tikzpicture}
-\caption{Technology Stack Architecture}
-\label{fig:tech-stack}
 \end{figure}
 
 \chapter{System Analysis and Design}
@@ -383,35 +356,73 @@ Analysis of various technology stacks:
 \subsection{ER Diagram}
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=2cm, every edge/.style={link}]
-\tikzstyle{entity} = [rectangle, draw, fill=primarycolor!20]
-\tikzstyle{relationship} = [diamond, draw, fill=secondarycolor!20]
-\tikzstyle{attribute} = [ellipse, draw, fill=accentcolor!20]
+\begin{tikzpicture}[node distance=2.5cm, every edge/.style={link}, scale=0.6, transform shape]
+\tikzstyle{entity} = [rectangle, draw, fill=primarycolor!20, minimum width=3cm, minimum height=1.5cm]
+\tikzstyle{relationship} = [diamond, draw, fill=secondarycolor!20, minimum width=2.5cm, minimum height=1.5cm]
+\tikzstyle{attribute} = [ellipse, draw, fill=accentcolor!20, scale=0.7]
 \tikzstyle{link} = [-latex', thick]
 
-% Entities
-\node[entity] (user) {User};
-\node[entity] (schedule) [right=of user] {Schedule};
-\node[entity] (room) [below=of user] {Room};
-\node[entity] (course) [below=of schedule] {Course};
+% Entities with more space
+\node[entity] (user) at (0,0) {User};
+\node[entity] (schedule) at (8,0) {Schedule};
+\node[entity] (room) at (0,-6) {Room};
+\node[entity] (availability) at (8,-6) {Availability};
+\node[entity] (notification) at (16,0) {Notification};
 
-% Relationships
-\draw[link] (user) -- (schedule) node[midway, above] {creates};
-\draw[link] (schedule) -- (room) node[midway, above] {uses};
-\draw[link] (schedule) -- (course) node[midway, right] {belongs to};
+% Relationships with adjusted positions
+\node[relationship] (creates) at (4,0) {Creates};
+\node[relationship] (uses) at (4,-3) {Uses};
+\node[relationship] (sets) at (4,-6) {Sets};
+\node[relationship] (receives) at (12,-3) {Receives};
+\node[relationship] (triggers) at (12,0) {Triggers};
 
-% Attributes
-\node[attribute] (userid) [above left=of user] {ID};
-\node[attribute] (username) [above=of user] {Name};
-\node[attribute] (scheduleid) [above=of schedule] {ID};
-\node[attribute] (roomid) [left=of room] {ID};
-\node[attribute] (courseid) [right=of course] {ID};
+% Attributes with more spacing
+\node[attribute] (userId) at (-2,1.5) {userId};
+\node[attribute] (userName) at (0,1.5) {name};
+\node[attribute] (userRole) at (2,1.5) {role};
 
-\draw (user) -- (userid);
-\draw (user) -- (username);
-\draw (schedule) -- (scheduleid);
-\draw (room) -- (roomid);
-\draw (course) -- (courseid);
+\node[attribute] (scheduleId) at (6,1.5) {scheduleId};
+\node[attribute] (subject) at (8,1.5) {subject};
+\node[attribute] (startTime) at (10,1.5) {startTime};
+
+\node[attribute] (roomId) at (-2,-7.5) {roomId};
+\node[attribute] (roomName) at (0,-7.5) {roomName};
+\node[attribute] (capacity) at (2,-7.5) {capacity};
+
+% Draw connections with more space
+\draw[link] (user) -- (creates);
+\draw[link] (creates) -- (schedule);
+\draw[link] (schedule) -- (uses);
+\draw[link] (uses) -- (room);
+\draw[link] (user) -- (sets);
+\draw[link] (sets) -- (availability);
+\draw[link] (user) -- (receives);
+\draw[link] (receives) -- (notification);
+\draw[link] (schedule) -- (triggers);
+\draw[link] (triggers) -- (notification);
+
+% Draw connections to attributes with more space
+\draw (user) -- (userId);
+\draw (user) -- (userName);
+\draw (user) -- (userRole);
+
+\draw (schedule) -- (scheduleId);
+\draw (schedule) -- (subject);
+\draw (schedule) -- (startTime);
+
+\draw (room) -- (roomId);
+\draw (room) -- (roomName);
+\draw (room) -- (capacity);
+
+% Cardinality with more space
+\node[font=\small] at (2,0.2) {1};
+\node[font=\small] at (6,0.2) {N};
+
+\node[font=\small] at (6.5,-2.8) {N};
+\node[font=\small] at (1.5,-2.8) {1};
+
+\node[font=\small] at (2,-5.8) {1};
+\node[font=\small] at (6,-5.8) {N};
 \end{tikzpicture}
 \caption{Entity Relationship Diagram}
 \label{fig:erd}
@@ -451,31 +462,232 @@ Analysis of various technology stacks:
 \label{fig:process}
 \end{figure}
 
+\subsection{Data Flow Diagram}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm, scale=0.7, transform shape]
+% Define styles with larger minimum sizes
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=primarycolor!20]
+\tikzstyle{entity} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=secondarycolor!20]
+\tikzstyle{datastore} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=accentcolor!20]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+% Place nodes with more spacing
+\node (user) [entity] {User};
+\node (auth) [process, below=2.5cm of user] {Authentication};
+\node (dashboard) [process, right=3cm of auth] {Dashboard};
+\node (schedule) [process, below=2.5cm of dashboard] {Schedule Mgmt};
+\node (room) [process, left=3cm of schedule] {Room Mgmt};
+\node (notification) [process, right=3cm of schedule] {Notifications};
+\node (db) [datastore, below=2.5cm of schedule] {Appwrite DB};
+
+% Draw edges with more space
+\draw [arrow] (user) -- (auth);
+\draw [arrow] (auth) -- (dashboard);
+\draw [arrow] (dashboard) -- (schedule);
+\draw [arrow] (dashboard) -- (room);
+\draw [arrow] (dashboard) -- (notification);
+\draw [arrow] (schedule) -- (db);
+\draw [arrow] (room) -- (db);
+\draw [arrow] (notification) -- (db);
+\draw [arrow] (db) -- (schedule);
+\draw [arrow] (db) -- (room);
+\draw [arrow] (db) -- (notification);
+\draw [arrow] (schedule) -- (notification);
+
+% Add labels with more space
+\node [font=\scriptsize] at ($(user)!0.5!(auth) + (-1.5,0)$) {Credentials};
+\node [font=\scriptsize] at ($(auth)!0.5!(dashboard) + (0,-0.4)$) {Token};
+\node [font=\scriptsize] at ($(dashboard)!0.5!(schedule) + (0.6,0)$) {Actions};
+\node [font=\scriptsize] at ($(schedule)!0.5!(db) + (1,0)$) {CRUD};
+\end{tikzpicture}
+\caption{Data Flow Diagram}
+\label{fig:dataflow}
+\end{figure}
+
 \section{System Design}
 \subsection{Architectural Design}
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[node distance=2cm]
-\node (ui) [block] {UI Components};
-\node (auth) [block, below left=of ui] {Auth Service};
-\node (schedule) [block, below right=of ui] {Schedule Service};
-\node (api) [block, below=of auth] {API Gateway};
-\node (db) [block, below=of schedule] {Database};
+\begin{tikzpicture}[node distance=2.2cm, scale=0.75, transform shape]
+\tikzstyle{layer} = [rectangle, draw, fill=primarycolor!20, 
+    minimum width=12cm, minimum height=1.5cm, text centered, font=\bfseries]
+\tikzstyle{component} = [rectangle, draw, fill=secondarycolor!20,
+    minimum width=2.5cm, minimum height=1.2cm, text centered]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+\tikzstyle{note} = [text width=3.5cm, font=\small\itshape]
 
-\path [line] (ui) -- (auth);
-\path [line] (ui) -- (schedule);
-\path [line] (auth) -- (api);
-\path [line] (schedule) -- (api);
-\path [line] (api) -- (db);
+% Layers with more vertical spacing
+\node (client) [layer] {Client Layer};
+\node (business) [layer, below=3cm of client] {Business Logic Layer};
+\node (data) [layer, below=3cm of business] {Data Access Layer};
+\node (storage) [layer, below=3cm of data] {Storage Layer};
 
-% Add labels
-\node [above=0.1cm of ui] {Frontend};
-\node [left=0.1cm of auth] {Services};
-\node [below=0.1cm of db] {Storage};
+% Components with more horizontal spacing
+\node (ui) [component] at ($(client) + (-4,0)$) {UI Components};
+\node (auth) [component] at ($(client) + (0,0)$) {Authentication};
+\node (routes) [component] at ($(client) + (4,0)$) {SvelteKit Routes};
+
+\node (schedule) [component] at ($(business) + (-4,0)$) {Schedule Service};
+\node (room) [component] at ($(business) + (-1.3,0)$) {Room Service};
+\node (user) [component] at ($(business) + (1.3,0)$) {User Service};
+\node (notification) [component] at ($(business) + (4,0)$) {Notification Service};
+
+\node (sdk) [component] at ($(data) + (-3,0)$) {Appwrite SDK};
+\node (query) [component] at ($(data) + (0,0)$) {Query Builder};
+\node (cache) [component] at ($(data) + (3,0)$) {Cache Manager};
+
+\node (users) [component] at ($(storage) + (-4,0)$) {Users Collection};
+\node (rooms) [component] at ($(storage) + (-1.3,0)$) {Rooms Collection};
+\node (schedules) [component] at ($(storage) + (1.3,0)$) {Schedules Collection};
+\node (notifications) [component] at ($(storage) + (4,0)$) {Notifications Collection};
+
+% Arrows between layers
+\draw [arrow] (client) -- (business);
+\draw [arrow] (business) -- (data);
+\draw [arrow] (data) -- (storage);
+
+% Annotations with more space
+\node [note, right=1cm of client] {SvelteKit, Tailwind CSS, FullCalendar};
+\node [note, right=1cm of business] {Business Logic, Validation, Conflict Detection};
+\node [note, right=1cm of data] {Appwrite SDK, Data Transformation};
+\node [note, right=1cm of storage] {Appwrite Cloud Database};
 \end{tikzpicture}
 \caption{System Architecture}
 \label{fig:architecture}
 \end{figure}
+
+\subsection{Database Design}
+The system uses Appwrite Cloud as its database solution, with the following collections and schema:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.65, transform shape]
+\tikzstyle{table} = [rectangle, draw, fill=primarycolor!10, 
+    minimum width=10cm, minimum height=1cm, text centered, font=\bfseries]
+\tikzstyle{column} = [rectangle, draw, fill=white,
+    minimum width=10cm, minimum height=0.8cm, text centered, font=\small]
+
+% Tables with more vertical spacing
+\node (users) [table] at (0,0) {Users Collection};
+\node (user1) [column, below=0.2cm of users] {userId: string (primary key)};
+\node (user2) [column, below=0.2cm of user1] {name: string};
+\node (user3) [column, below=0.2cm of user2] {email: string (unique, indexed)};
+\node (user4) [column, below=0.2cm of user3] {role: enum ['admin', 'teacher', 'student']};
+\node (user5) [column, below=0.2cm of user4] {isActive: boolean};
+\node (user6) [column, below=0.2cm of user5] {preferences: JSON};
+
+\node (rooms) [table] at (0,-8) {Rooms Collection};
+\node (room1) [column, below=0.2cm of rooms] {roomId: string (primary key)};
+\node (room2) [column, below=0.2cm of room1] {roomName: string};
+\node (room3) [column, below=0.2cm of room2] {capacity: number (indexed)};
+\node (room4) [column, below=0.2cm of room3] {building: string (indexed)};
+\node (room5) [column, below=0.2cm of room4] {floor: number};
+\node (room6) [column, below=0.2cm of room5] {features: string[]};
+
+\node (schedules) [table] at (12,0) {Schedules Collection};
+\node (schedule1) [column, below=0.2cm of schedules] {scheduleId: string (primary key)};
+\node (schedule2) [column, below=0.2cm of schedule1] {className: string};
+\node (schedule3) [column, below=0.2cm of schedule2] {subject: string};
+\node (schedule4) [column, below=0.2cm of schedule3] {teacherId: string (foreign key)};
+\node (schedule5) [column, below=0.2cm of schedule4] {roomId: string (foreign key)};
+\node (schedule6) [column, below=0.2cm of schedule5] {startTime: string (ISO)};
+\node (schedule7) [column, below=0.2cm of schedule6] {endTime: string (ISO)};
+\node (schedule8) [column, below=0.2cm of schedule7] {dayOfWeek: string};
+\node (schedule9) [column, below=0.2cm of schedule8] {recurrence: string};
+
+\node (availability) [table] at (12,-8) {Teacher Availability};
+\node (avail1) [column, below=0.2cm of availability] {availabilityId: string (primary key)};
+\node (avail2) [column, below=0.2cm of avail1] {teacherId: string (foreign key)};
+\node (avail3) [column, below=0.2cm of avail2] {dayOfWeek: string};
+\node (avail4) [column, below=0.2cm of avail3] {startTime: string (ISO)};
+\node (avail5) [column, below=0.2cm of avail4] {endTime: string (ISO)};
+\node (avail6) [column, below=0.2cm of avail5] {isAvailable: boolean};
+\node (avail7) [column, below=0.2cm of avail6] {note: string (optional)};
+
+\node (notifications) [table] at (0,-16) {Notifications Collection};
+\node (notif1) [column, below=0.2cm of notifications] {notificationId: string (primary key)};
+\node (notif2) [column, below=0.2cm of notif1] {userId: string (foreign key)};
+\node (notif3) [column, below=0.2cm of notif2] {title: string};
+\node (notif4) [column, below=0.2cm of notif3] {message: string};
+\node (notif5) [column, below=0.2cm of notif4] {type: string};
+\node (notif6) [column, below=0.2cm of notif5] {isRead: boolean};
+\node (notif7) [column, below=0.2cm of notif6] {createdAt: timestamp};
+\end{tikzpicture}
+\caption{Database Schema}
+\label{fig:db-schema}
+\end{figure}
+
+\subsubsection{Database Indexes}
+To optimize query performance, the following indexes are implemented:
+
+\begin{itemize}
+    \item \textbf{Users Collection:}
+    \begin{itemize}
+        \item email (unique) - For fast user lookup during authentication
+        \item role - For filtering users by role
+    \end{itemize}
+    
+    \item \textbf{Rooms Collection:}
+    \begin{itemize}
+        \item capacity - For finding rooms with adequate capacity
+        \item building - For filtering rooms by building
+        \item features - For searching rooms with specific features
+    \end{itemize}
+    
+    \item \textbf{Schedules Collection:}
+    \begin{itemize}
+        \item teacherId - For finding schedules by teacher
+        \item roomId - For finding schedules by room
+        \item dayOfWeek - For filtering schedules by day
+        \item startTime, endTime - For time-based queries
+        \item Composite index (roomId, dayOfWeek, startTime, endTime) - For conflict detection
+    \end{itemize}
+    
+    \item \textbf{Availability Collection:}
+    \begin{itemize}
+        \item teacherId - For finding availability by teacher
+        \item dayOfWeek - For filtering availability by day
+        \item Composite index (teacherId, dayOfWeek) - For efficient availability lookup
+    \end{itemize}
+    
+    \item \textbf{Notifications Collection:}
+    \begin{itemize}
+        \item userId - For finding notifications for a specific user
+        \item isRead - For filtering unread notifications
+        \item createdAt - For sorting notifications by time
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Data Relationships}
+The database implements the following relationships:
+
+\begin{itemize}
+    \item One-to-Many: User to Schedules (a teacher can have multiple schedules)
+    \item One-to-Many: User to Availability (a teacher can have multiple availability slots)
+    \item One-to-Many: User to Notifications (a user can have multiple notifications)
+    \item One-to-Many: Room to Schedules (a room can be used in multiple schedules)
+    \item Many-to-Many: Teachers to Rooms (through Schedules collection)
+\end{itemize}
+
+\subsubsection{Data Security}
+Appwrite provides document-level security through access control rules:
+
+\begin{itemize}
+    \item Administrators have full access to all collections
+    \item Teachers can:
+        \begin{itemize}
+            \item Read all schedules
+            \item Create and update their own availability
+            \item Read room information
+        \end{itemize}
+    \item Students can:
+        \begin{itemize}
+            \item Read schedules relevant to their classes
+            \item Read teacher and room information
+        \end{itemize}
+    \item All users can manage their own notifications
+\end{itemize}
 
 \subsection{Interface Design}
 The user interface follows modern design principles:
@@ -496,6 +708,61 @@ Key interface components:
     \item User Management
     \item Settings Panel
 \end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.6]
+% Define colors
+\definecolor{navcolor}{RGB}{30,41,59}
+\definecolor{bgcolor}{RGB}{241,245,249}
+\definecolor{cardcolor}{RGB}{255,255,255}
+\definecolor{primarybtn}{RGB}{79,70,229}
+\definecolor{textcolor}{RGB}{15,23,42}
+
+% Draw browser window with more space
+\draw[rounded corners=5pt, fill=bgcolor] (0,0) rectangle (16,10);
+
+% Navigation sidebar with more width
+\draw[rounded corners=5pt, fill=navcolor] (0.5,0.5) rectangle (3.5,9.5);
+\node[text=white, font=\bfseries] at (2,9) {TimeTablePro};
+
+% Nav items with more spacing
+\foreach \y/\text in {8/Dashboard, 7/Schedule, 6/Rooms, 5/Teachers} {
+    \node[text=white, font=\small] at (2,\y) {\text};
+}
+
+% Main content area with more space
+\node[align=left, font=\bfseries] at (10,9) {Schedule Management};
+
+% Calendar header with more width
+\draw[fill=cardcolor, rounded corners=3pt] (4,8) rectangle (15.5,8.8);
+\node[font=\small] at (5,8.4) {Week};
+\node[font=\small] at (7,8.4) {Month};
+\node[font=\small, right] at (13,8.4) {March 2025};
+
+% Calendar grid with more space
+\draw[fill=cardcolor, rounded corners=3pt] (4,0.5) rectangle (15.5,7.8);
+
+% Calendar content with more spacing
+\draw[fill=primarybtn!40, rounded corners=2pt] (5,7) rectangle (7,5);
+\node[text=textcolor, align=center, font=\small] at (6,6) {Database};
+
+\draw[fill=orange!40, rounded corners=2pt] (8,5) rectangle (10,3);
+\node[text=textcolor, align=center, font=\small] at (9,4) {Software};
+
+\draw[fill=green!40, rounded corners=2pt] (11,6) rectangle (13,4);
+\node[text=textcolor, align=center, font=\small] at (12,5) {Web Dev};
+
+\draw[fill=red!40, rounded corners=2pt] (14,4) rectangle (15,2);
+\node[text=textcolor, align=center, font=\small] at (14.5,3) {Networks};
+
+% Add button with more space
+\draw[fill=primarybtn, rounded corners=5pt] (14.5,8.2) rectangle (15.5,8.6);
+\node[text=white] at (15,8.4) {+};
+\end{tikzpicture}
+\caption{Schedule Management Interface}
+\label{fig:ui-mockup}
+\end{figure}
 
 \chapter{Testing}
 \section{Test Cases for Unit Testing}
@@ -535,31 +802,36 @@ Security & SQL injection attempt & Attack prevented & Passed \\
 \section{Performance Testing Results}
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=0.8]
 \begin{axis}[
     xlabel={Number of Users},
     ylabel={Response Time (ms)},
     xmin=0, xmax=100,
     ymin=0, ymax=1000,
-    xtick={0,20,40,60,80,100},
-    ytick={0,200,400,600,800,1000},
+    xtick={0,25,50,75,100},
+    ytick={0,250,500,750,1000},
     legend pos=north west,
     ymajorgrids=true,
     grid style=dashed,
+    width=12cm,
+    height=8cm,
+    legend style={font=\small},
+    tick label style={font=\small},
+    label style={font=\small}
 ]
 \addplot[
     color=primarycolor,
     mark=square,
     ]
     coordinates {
-    (0,100)(20,150)(40,250)(60,400)(80,600)(100,850)
+    (0,100)(25,200)(50,350)(75,550)(100,850)
     };
 \addplot[
     color=secondarycolor,
     mark=triangle,
     ]
     coordinates {
-    (0,80)(20,100)(40,150)(60,200)(80,300)(100,450)
+    (0,80)(25,120)(50,180)(75,280)(100,450)
     };
 \legend{Without Optimization,With Optimization}
 \end{axis}
@@ -580,11 +852,11 @@ Key learnings from the project:
 \end{itemize}
 
 \section{Conclusion}
-TimeTablePro successfully addresses the challenges of modern timetable management:
+TimeTablePro successfully addresses the challenges of modern timetable management \cite{user_experience}:
 \begin{itemize}
     \item Automated scheduling reduces manual effort
     \item Real-time updates improve communication
-    \item Conflict detection prevents scheduling errors
+    \item Conflict detection prevents scheduling errors \cite{conflict_detection}
     \item Intuitive interface enhances user experience
     \item Scalable architecture ensures future growth
 \end{itemize}
@@ -601,12 +873,12 @@ Proposed future enhancements:
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=0.8]
 \begin{axis}[
     ybar,
-    xlabel={Development Phases},
-    ylabel={Priority Score},
-    symbolic x coords={Mobile App,AI Features,Integration,Reports,Offline Mode},
+    xlabel={Development Priorities},
+    ylabel={Priority Score (1-10)},
+    symbolic x coords={Mobile,AI,Integration,Reports,Offline},
     xtick=data,
     nodes near coords,
     nodes near coords align={vertical},
@@ -618,20 +890,21 @@ Proposed future enhancements:
     axis lines*=left,
     ymajorgrids=true,
     grid style=dashed,
+    legend style={font=\small},
+    tick label style={font=\small},
+    label style={font=\small}
 ]
 \addplot[fill=primarycolor!40] coordinates {
-    (Mobile App,8)
-    (AI Features,7)
+    (Mobile,8)
+    (AI,7)
     (Integration,6)
     (Reports,5)
-    (Offline Mode,4)
+    (Offline,4)
 };
 \end{axis}
 \end{tikzpicture}
 \caption{Future Development Priorities}
 \label{fig:priorities}
 \end{figure}
-
-\printbibliography
 
 \end{document} 
