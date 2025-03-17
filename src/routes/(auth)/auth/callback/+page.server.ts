@@ -5,32 +5,24 @@ import { authService } from '$lib/services/auth';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
     try {
-        // If there's an error in the URL, redirect to login with error message
+        // If there's an error in the URL, log it but don't redirect
         const error = url.searchParams.get('error');
         if (error) {
-            throw redirect(303, `${ROUTES.LOGIN}?error=${encodeURIComponent(error)}`);
+            console.error(`Auth error: ${error}`);
         }
 
         // Get the user from the session
         const user = await authService.getCurrentUser();
-        if (user) {
-            // Redirect to appropriate dashboard based on role
-            switch (user.role) {
-                case 'ADMIN':
-                    throw redirect(303, ROUTES.ADMIN_DASHBOARD);
-                case 'TEACHER':
-                    throw redirect(303, ROUTES.TEACHER_DASHBOARD);
-                default:
-                    throw redirect(303, ROUTES.STUDENT_DASHBOARD);
-            }
-        }
-
-        // Let the client-side handle the OAuth callback if no user is found
-        return {};
+        
+        // Return user data without redirecting
+        return {
+            user,
+            error
+        };
     } catch (error) {
-        if (error instanceof Error) {
-            throw redirect(303, `${ROUTES.LOGIN}?error=${encodeURIComponent(error.message)}`);
-        }
-        throw error;
+        console.error('Auth callback error:', error);
+        return {
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
     }
 }; 

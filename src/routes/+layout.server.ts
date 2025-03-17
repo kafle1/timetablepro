@@ -34,30 +34,24 @@ function getDashboardRoute(role: keyof typeof USER_ROLES): string {
 }
 
 export async function load({ locals, url }: RequestEvent) {
-    const path = url.pathname;
-    const user = locals.user as User | null;
-
-    // Handle protected routes
-    if (protectedRoutes.some(route => path.startsWith(route))) {
-        if (!user) {
-            throw redirect(302, `${ROUTES.LOGIN}?redirect=${path}`);
-        }
-
-        // Check role-based access
-        const allowedRoutes = roleBasedRoutes[user.role as keyof typeof USER_ROLES] || [];
-        const hasAccess = allowedRoutes.some((route: string) => path.startsWith(route));
-
-        if (!hasAccess) {
-            throw redirect(302, getDashboardRoute(user.role as keyof typeof USER_ROLES));
-        }
-    }
-
-    // Handle auth routes when user is already logged in
-    if ([ROUTES.LOGIN, ROUTES.REGISTER].includes(path) && user && path !== ROUTES.AUTH_CALLBACK) {
-        throw redirect(302, getDashboardRoute(user.role as keyof typeof USER_ROLES));
-    }
-
+    // Always return a mock admin user for UI testing
     return {
-        user
+        user: {
+            $id: 'mock-admin',
+            userId: 'mock-admin',
+            email: 'admin@timetablepro.com',
+            name: 'Admin User',
+            role: 'ADMIN',
+            isActive: true,
+            emailVerified: true,
+            preferences: {},
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            $collectionId: 'users',
+            $databaseId: 'default',
+            $createdAt: new Date().toISOString(),
+            $updatedAt: new Date().toISOString(),
+            $permissions: []
+        }
     };
-}; 
+} 

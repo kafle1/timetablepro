@@ -101,8 +101,8 @@ function createAuthStore() {
                 set({ user, loading: false, error: null });
                 
                 if (browser) {
-                    console.log('Redirecting to:', redirectTo || getDashboardRoute(user.role));
-                    await goto(redirectTo || getDashboardRoute(user.role));
+                    console.log('UI Testing Mode - No Redirection');
+                    // Redirection disabled for UI testing
                 }
                 
                 return user;
@@ -143,7 +143,8 @@ function createAuthStore() {
                 set({ user, loading: false, error: null });
                 
                 if (browser) {
-                    await goto(getDashboardRoute(user.role));
+                    console.log('UI Testing Mode - No Redirection');
+                    // Redirection disabled for UI testing
                 }
             } catch (error) {
                 console.error('Registration error:', error);
@@ -161,7 +162,8 @@ function createAuthStore() {
                 await account.deleteSession('current');
                 set({ user: null, loading: false, error: null });
                 if (browser) {
-                    await goto(ROUTES.LOGIN);
+                    console.log('UI Testing Mode - No Redirection');
+                    // Redirection disabled for UI testing
                 }
             } catch (error) {
                 update(state => ({
@@ -184,11 +186,11 @@ function createAuthStore() {
                     [Query.equal('email', [accountDetails.email])]
                 );
                 
-                const user = response.documents[0] as User;
-                if (!user) {
+                if (response.documents.length === 0) {
                     throw new Error('User not found in database');
                 }
-
+                
+                const user = response.documents[0] as unknown as User;
                 set({ user, loading: false, error: null });
                 return user;
             } catch (error) {
@@ -199,8 +201,36 @@ function createAuthStore() {
         updateProfile: async (name: string) => {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
-                const user = await account.updateName(name);
-                set({ user, loading: false, error: null });
+                await account.updateName(name);
+                
+                // Get current user from state
+                const currentUser = await account.get();
+                
+                // Update the user in the database
+                if (currentUser && currentUser.email) {
+                    // Get user from database
+                    const response = await databases.listDocuments(
+                        DB_CONFIG.databaseId,
+                        DB_CONFIG.collections.USERS,
+                        [Query.equal('email', [currentUser.email])]
+                    );
+                    
+                    if (response.documents.length > 0) {
+                        const user = response.documents[0] as unknown as User;
+                        // Update the user's name
+                        const updatedUser = await databases.updateDocument(
+                            DB_CONFIG.databaseId,
+                            DB_CONFIG.collections.USERS,
+                            user.$id,
+                            { name }
+                        ) as unknown as User;
+                        
+                        set({ user: updatedUser, loading: false, error: null });
+                        return updatedUser;
+                    }
+                }
+                
+                throw new Error('Failed to update profile');
             } catch (error) {
                 update(state => ({
                     ...state,

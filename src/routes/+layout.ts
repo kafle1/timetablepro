@@ -3,6 +3,7 @@ import type { LayoutLoad } from './$types';
 import { ROUTES, USER_ROLES } from '$lib/config';
 import { authStore } from '$lib/stores/auth';
 import { get } from 'svelte/store';
+import type { User } from '$lib/types';
 
 const protectedRoutes = [
     ROUTES.ADMIN_DASHBOARD,
@@ -24,33 +25,26 @@ const roleBasedRoutes = {
 };
 
 export const load: LayoutLoad = async ({ url }) => {
-    const { user } = get(authStore);
-    const path = url.pathname;
-
-    // Handle protected routes
-    if (protectedRoutes.some(route => path.startsWith(route))) {
-        if (!user) {
-            throw redirect(302, `${ROUTES.LOGIN}?redirect=${path}`);
-        }
-
-        // Check role-based access
-        const allowedRoutes = roleBasedRoutes[user.role] || [];
-        const hasAccess = allowedRoutes.some(route => path.startsWith(route));
-
-        if (!hasAccess) {
-            // Redirect to appropriate dashboard based on role
-            switch (user.role) {
-                case USER_ROLES.ADMIN:
-                    throw redirect(302, ROUTES.ADMIN_DASHBOARD);
-                case USER_ROLES.TEACHER:
-                    throw redirect(302, ROUTES.TEACHER_DASHBOARD);
-                default:
-                    throw redirect(302, ROUTES.STUDENT_DASHBOARD);
-            }
-        }
-    }
+    // UI Testing Mode - Always return a mock admin user
+    const mockUser: User = {
+        $id: 'mock-admin',
+        userId: 'mock-admin',
+        email: 'admin@timetablepro.com',
+        name: 'Admin User',
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+        preferences: {},
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        $collectionId: 'users',
+        $databaseId: 'default',
+        $createdAt: new Date().toISOString(),
+        $updatedAt: new Date().toISOString(),
+        $permissions: []
+    };
 
     return {
-        user
+        user: mockUser
     };
 }; 

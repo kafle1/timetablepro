@@ -6,19 +6,7 @@
   import { ROUTES, USER_ROLES } from '$lib/config';
 
   onMount(() => {
-    if ($userStore && $userStore.user) {
-      switch ($userStore.user.role) {
-        case USER_ROLES.ADMIN:
-          goto(ROUTES.ADMIN_DASHBOARD);
-          break;
-        case USER_ROLES.TEACHER:
-          goto(ROUTES.TEACHER_DASHBOARD);
-          break;
-        case USER_ROLES.STUDENT:
-          goto(ROUTES.STUDENT_DASHBOARD);
-          break;
-      }
-    }
+    console.log('UI Testing Mode - No Redirection in Auth Layout');
   });
 
   $: isAuthCallback = $page.url.pathname === '/auth/callback';

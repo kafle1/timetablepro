@@ -10,6 +10,7 @@
 	import type { User } from '$lib/types';
 	import { browser } from '$app/environment';
 
+	// AUTHENTICATION CHECKS DISABLED FOR UI TESTING
 	// Protected routes configuration
 	const protectedRoutes = [
 		'/admin',
@@ -26,78 +27,36 @@
 		[USER_ROLES.STUDENT]: ['/student', '/schedules']
 	};
 
-	const publicRoutes = [ROUTES.LOGIN, ROUTES.REGISTER, '/'];
+	const publicRoutes = [ROUTES.LOGIN, ROUTES.REGISTER, '/', '/auth/callback'];
+	let isInitialized = false;
 
-	onMount(async () => {
-		try {
-			// Check if we're on a public route first
-			if (browser && publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
-				// Don't try to get the current user on public routes
-				return;
-			}
-			
-			// Try to get the current user
-			const user = await authService.getCurrentUser();
-			
-			if (user) {
-				userStore.setUser(user);
-			} else {
-				// If we're not on a public route, redirect to login
-				if (browser) {
-					// Use direct window location for more reliable navigation
-					window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent($page.url.pathname)}`;
-				}
-			}
-		} catch (error) {
-			console.error('Error fetching user:', error);
-			// If we're not on a public route, redirect to login
-			if (browser && !publicRoutes.some((route: string) => $page.url.pathname.startsWith(route))) {
-				// Use direct window location for more reliable navigation
-				window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent($page.url.pathname)}`;
-			}
-		}
+	// Create a mock admin user
+	const mockAdminUser = {
+		$id: 'mock-admin',
+		userId: 'mock-admin',
+		email: 'admin@timetablepro.com',
+		name: 'Admin User',
+		role: 'ADMIN',
+		isActive: true,
+		emailVerified: true,
+		preferences: {},
+		createdAt: new Date().toISOString(),
+		lastLoginAt: new Date().toISOString(),
+		$collectionId: 'users',
+		$databaseId: 'default',
+		$createdAt: new Date().toISOString(),
+		$updatedAt: new Date().toISOString(),
+		$permissions: []
+	} as User;
+
+	onMount(() => {
+		// Always set the mock admin user
+		userStore.setUser(mockAdminUser);
+		isInitialized = true;
 	});
 
-	$: currentUser = $userStore?.user;
-	$: if (browser && $page.url.pathname !== '/') {
-		handleRouteProtection($page.url.pathname, currentUser);
-	}
-
-	function handleRouteProtection(path: string, user: User | null) {
-		// Skip if not in browser
-		if (!browser) return;
-		
-		// Allow public routes
-		if (!protectedRoutes.some(route => path.startsWith(route))) {
-			return;
-		}
-
-		// Redirect to login if not authenticated
-		if (!user) {
-			// Use direct window location for more reliable navigation
-			window.location.href = `${ROUTES.LOGIN}?redirect=${encodeURIComponent(path)}`;
-			return;
-		}
-
-		// Check role-based access
-		const allowedRoutes = roleBasedRoutes[user.role] || [];
-		if (!allowedRoutes.some(route => path.startsWith(route))) {
-			// Redirect to appropriate dashboard
-			switch (user.role) {
-				case USER_ROLES.ADMIN:
-					window.location.href = ROUTES.ADMIN_DASHBOARD;
-					break;
-				case USER_ROLES.TEACHER:
-					window.location.href = ROUTES.TEACHER_DASHBOARD;
-					break;
-				case USER_ROLES.STUDENT:
-					window.location.href = ROUTES.STUDENT_DASHBOARD;
-					break;
-				default:
-					window.location.href = ROUTES.LOGIN;
-			}
-		}
-	}
+	$: currentUser = $userStore?.user || mockAdminUser;
+	// Authentication checks disabled for UI testing
 </script>
 
 <div class="min-h-screen bg-background text-foreground">
@@ -106,22 +65,15 @@
 			<div class="container flex items-center justify-between px-4 py-4 mx-auto">
 				<nav class="flex items-center space-x-6">
 					<a href="/" class="text-lg font-semibold">TimeTablePro</a>
-					{#if currentUser.role === USER_ROLES.ADMIN}
-						<a href="/admin" class="hover:text-primary">Admin</a>
-					{:else if currentUser.role === USER_ROLES.TEACHER}
-						<a href="/teacher" class="hover:text-primary">Dashboard</a>
-					{:else}
-						<a href="/student" class="hover:text-primary">Dashboard</a>
-					{/if}
+					<a href="/admin/dashboard" class="hover:text-primary">Admin</a>
+					<a href="/teacher/dashboard" class="hover:text-primary">Teacher</a>
+					<a href="/student/dashboard" class="hover:text-primary">Student</a>
+					<a href="/rooms" class="hover:text-primary">Rooms</a>
+					<a href="/schedules" class="hover:text-primary">Schedules</a>
 				</nav>
 				<div class="flex items-center space-x-4">
 					<NotificationBell />
-					<button
-						class="text-sm hover:text-primary"
-						on:click={() => authService.logout()}
-					>
-						Logout
-					</button>
+					<a href="/login" class="text-sm hover:text-primary">Login Page</a>
 				</div>
 			</div>
 		</header>

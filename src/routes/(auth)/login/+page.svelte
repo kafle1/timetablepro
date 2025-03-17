@@ -4,13 +4,15 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
-    import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, User } from 'lucide-svelte';
+    import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, UserIcon } from 'lucide-svelte';
     import { page } from '$app/stores';
     import { Alert, AlertDescription } from '$lib/components/ui/alert';
     import { Checkbox } from '$lib/components/ui/checkbox';
     import { goto } from '$app/navigation';
     import { ROUTES } from '$lib/config';
     import { onMount } from 'svelte';
+    import { userStore } from '$lib/stores/userStore';
+    import type { User } from '$lib/types';
 
     let email = '';
     let password = '';
@@ -91,44 +93,14 @@
             success = null;
             loading = true;
 
-            // Clear any existing session data first
-            if (localStorage.getItem('cookieFallback')) {
-                try {
-                    await authService.logout();
-                } catch (e) {
-                    // Ignore errors during logout
-                    console.log('Error during pre-login logout:', e);
-                }
-            }
-
-            const user = await authService.login(email, password);
-
-            // Store email in localStorage if remember me is checked
-            if (rememberMe) {
-                localStorage.setItem('rememberedEmail', email);
-            } else {
-                localStorage.removeItem('rememberedEmail');
-            }
-
-            // Redirect to the requested page or dashboard
-            if (redirectTo) {
-                console.log('Redirecting to requested page:', redirectTo);
-                window.location.href = redirectTo;
-            } else {
-                // Default redirection based on user role
-                const dashboardRoute = user.role === 'ADMIN' 
-                    ? ROUTES.ADMIN_DASHBOARD 
-                    : user.role === 'TEACHER' 
-                        ? ROUTES.TEACHER_DASHBOARD 
-                        : ROUTES.STUDENT_DASHBOARD;
-                
-                console.log('Redirecting to dashboard:', dashboardRoute);
-                window.location.href = dashboardRoute;
-            }
+            // For UI testing, don't actually log in or redirect
+            setTimeout(() => {
+                loading = false;
+                success = "UI testing mode - Login successful. Use the links below to navigate.";
+            }, 1000);
         } catch (err: any) {
             console.error('Login error:', err);
             error = err.message || 'Login failed. Please try again.';
-        } finally {
             loading = false;
         }
     }
@@ -162,46 +134,46 @@
 
 <div class="flex min-h-screen bg-background">
     <!-- Left side - Form -->
-    <div class="flex flex-col justify-center flex-1 px-4 py-12 mx-auto sm:px-6 lg:flex-none lg:px-12 xl:px-16 max-w-md">
+    <div class="flex flex-col justify-center flex-1 max-w-md px-4 py-12 mx-auto sm:px-6 lg:flex-none lg:px-12 xl:px-16">
         <div class="w-full">
             <div class="mb-8 text-center">
                 <h1 class="text-3xl font-bold tracking-tight">
                     <a href="/" class="flex items-center justify-center">
-                        <span class="text-primary font-bold">Timetable</span><span class="font-bold">Pro</span>
+                        <span class="font-bold text-primary">Timetable</span><span class="font-bold">Pro</span>
                     </a>
                 </h1>
                 <p class="mt-2 text-sm text-muted-foreground">Sign in to your account</p>
             </div>
 
             {#if error}
-                <div class="mb-6 animate-in fade-in duration-300">
+                <div class="mb-6 duration-300 animate-in fade-in">
                     <Alert variant="destructive" class="border-destructive/30 text-destructive">
-                        <AlertCircle class="h-4 w-4 mr-2" />
+                        <AlertCircle class="w-4 h-4 mr-2" />
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 </div>
             {/if}
 
             {#if success}
-                <div class="mb-6 animate-in fade-in duration-300">
-                    <Alert class="border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400">
-                        <CheckCircle2 class="h-4 w-4 mr-2" />
+                <div class="mb-6 duration-300 animate-in fade-in">
+                    <Alert class="text-green-600 border-green-500/30 bg-green-500/10 dark:text-green-400">
+                        <CheckCircle2 class="w-4 h-4 mr-2" />
                         <AlertDescription>{success}</AlertDescription>
                     </Alert>
                 </div>
             {/if}
 
-            <div class="mb-6 p-4 border border-border/60 rounded-lg bg-muted/30 shadow-sm">
-                <p class="text-sm font-medium mb-3 text-muted-foreground">Test Accounts</p>
+            <div class="p-4 mb-6 border rounded-lg shadow-sm border-border/60 bg-muted/30">
+                <p class="mb-3 text-sm font-medium text-muted-foreground">Test Accounts</p>
                 <div class="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('admin')}>
-                        <User class="h-3 w-3 mr-1.5 opacity-70" /> Admin
+                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Admin
                     </Button>
                     <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('teacher')}>
-                        <User class="h-3 w-3 mr-1.5 opacity-70" /> Teacher
+                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Teacher
                     </Button>
                     <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('student')}>
-                        <User class="h-3 w-3 mr-1.5 opacity-70" /> Student
+                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Student
                     </Button>
                 </div>
             </div>
@@ -222,8 +194,8 @@
                         />
                     </div>
                     {#if emailError}
-                        <div class="animate-in fade-in duration-300">
-                            <p class="text-xs text-destructive mt-1">{emailError}</p>
+                        <div class="duration-300 animate-in fade-in">
+                            <p class="mt-1 text-xs text-destructive">{emailError}</p>
                         </div>
                     {/if}
                 </div>
@@ -245,44 +217,67 @@
                         />
                         <button 
                             type="button" 
-                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:text-foreground transition-colors"
+                            class="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:text-foreground"
                             on:click={togglePasswordVisibility}
                             aria-label={showPassword ? "Hide password" : "Show password"}
                             tabindex="-1"
                         >
                             {#if showPassword}
-                                <EyeOff class="h-4 w-4" />
+                                <EyeOff class="w-4 h-4" />
                             {:else}
-                                <Eye class="h-4 w-4" />
+                                <Eye class="w-4 h-4" />
                             {/if}
                         </button>
                     </div>
                     {#if passwordError}
-                        <div class="animate-in fade-in duration-300">
-                            <p class="text-xs text-destructive mt-1">{passwordError}</p>
+                        <div class="duration-300 animate-in fade-in">
+                            <p class="mt-1 text-xs text-destructive">{passwordError}</p>
                         </div>
                     {/if}
                 </div>
 
-                <div class="flex items-center space-x-2">
-                    <Checkbox
-                        id="remember"
-                        bind:checked={rememberMe}
-                        disabled={loading}
-                    />
-                    <Label for="remember" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Remember me
-                    </Label>
+                <div class="flex items-center justify-between mt-6">
+                    <div class="flex items-center">
+                        <Checkbox id="remember-me" bind:checked={rememberMe} />
+                        <Label for="remember-me" class="ml-2 text-sm">Remember me</Label>
+                    </div>
+                    <Button type="submit" disabled={loading}>
+                        {#if loading}
+                            <Loader2 class="w-4 h-4 mr-2 animate-spin" />
+                            Signing in...
+                        {:else}
+                            Sign in
+                        {/if}
+                    </Button>
                 </div>
-
-                <Button type="submit" class="w-full h-11" disabled={loading}>
-                    {#if loading}
-                        <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                        Signing in...
-                    {:else}
-                        Sign in
-                    {/if}
-                </Button>
+                
+                <!-- UI Testing Navigation Links -->
+                <div class="mt-8 p-4 border rounded-lg bg-muted/30">
+                    <h3 class="text-sm font-medium mb-3">UI Testing Navigation</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <a href="/admin/dashboard" class="text-primary hover:underline text-sm">Admin Dashboard</a>
+                        </div>
+                        <div>
+                            <a href="/teacher/dashboard" class="text-primary hover:underline text-sm">Teacher Dashboard</a>
+                        </div>
+                        <div>
+                            <a href="/student/dashboard" class="text-primary hover:underline text-sm">Student Dashboard</a>
+                        </div>
+                        <div>
+                            <a href="/rooms" class="text-primary hover:underline text-sm">Rooms</a>
+                        </div>
+                        <div>
+                            <a href="/schedules" class="text-primary hover:underline text-sm">Schedules</a>
+                        </div>
+                        <div>
+                            <a href="/profile" class="text-primary hover:underline text-sm">Profile</a>
+                        </div>
+                        <div>
+                            <a href="/settings" class="text-primary hover:underline text-sm">Settings</a>
+                        </div>
+                    </div>
+                </div>
             </form>
 
             <div class="relative my-6">
@@ -305,7 +300,7 @@
                 {/if}
             </Button>
 
-            <p class="mt-6 text-center text-sm text-muted-foreground">
+            <p class="mt-6 text-sm text-center text-muted-foreground">
                 New to TimetablePro?
                 <a href="/register" class="font-medium text-primary hover:underline focus:outline-none focus:underline">Create an account</a>
             </p>
@@ -318,7 +313,7 @@
             <img 
                 src="/auth-illustration-login.svg" 
                 alt="Login illustration" 
-                class="max-w-full max-h-full object-contain"
+                class="object-contain max-w-full max-h-full"
                 width="500"
                 height="500"
             />

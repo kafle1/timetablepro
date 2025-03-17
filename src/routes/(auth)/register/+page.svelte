@@ -18,6 +18,7 @@
     let role = '';
     let loading = false;
     let error: string | null = $page.url.searchParams.get('error') || null;
+    let success: string | null = null;
     let showPassword = false;
     let showConfirmPassword = false;
     
@@ -199,8 +200,9 @@
             loading = true;
             await authService.register(email, password, name, role as keyof typeof USER_ROLES);
             
-            // Redirect to login page with success message
-            goto('/login?success=registration_success');
+            // UI Testing Mode - No Redirection
+            loading = false;
+            success = 'Registration successful! UI Testing Mode - No Redirection';
         } catch (err: any) {
             console.error('Registration error:', err);
             if (err.code === 409) {
@@ -243,12 +245,16 @@
             </div>
 
             {#if error}
-                <div class="mb-6 duration-300 animate-in fade-in">
-                    <Alert variant="destructive" class="border-destructive/30 text-destructive">
-                        <AlertCircle class="w-4 h-4 mr-2" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                </div>
+                <Alert variant="destructive" class="mb-4">
+                    <AlertCircle class="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            {/if}
+
+            {#if success}
+                <Alert variant="default" class="mb-4 bg-green-50 text-green-800 border-green-200">
+                    <AlertDescription>{success}</AlertDescription>
+                </Alert>
             {/if}
 
             <div class="p-4 mb-6 border rounded-lg shadow-sm border-border/60 bg-muted/30">

@@ -10,18 +10,9 @@
   import { onMount } from 'svelte';
   import { USER_ROLES } from '$lib/config';
 
-  // Only redirect if the user is already logged in
+  // UI testing mode - no redirection
   onMount(() => {
-    if ($userStore && $userStore.user) {
-      const role = $userStore.user.role;
-      if (role === USER_ROLES.ADMIN) {
-        goto('/admin/dashboard');
-      } else if (role === USER_ROLES.TEACHER) {
-        goto('/teacher/dashboard');
-      } else if (role === USER_ROLES.STUDENT) {
-        goto('/student/dashboard');
-      }
-    }
+    console.log('UI Testing Mode - No Redirection');
   });
 </script>
 

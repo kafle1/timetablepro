@@ -19,6 +19,7 @@ function createNotificationStore() {
     // Store the user ID for polling
     let userId: string | null = null;
     let pollingInterval: ReturnType<typeof setInterval> | null = null;
+    let isCollectionMissing = false;
     
     // Subscribe to user store to get user ID
     userStore.subscribe(userState => {
@@ -38,10 +39,12 @@ function createNotificationStore() {
         // Initial fetch
         fetchNotifications();
         
-        // Set up polling
-        pollingInterval = setInterval(() => {
-            fetchNotifications();
-        }, intervalMs);
+        // Set up polling only if collection exists
+        if (!isCollectionMissing) {
+            pollingInterval = setInterval(() => {
+                fetchNotifications();
+            }, intervalMs);
+        }
     }
     
     // Stop polling
@@ -55,6 +58,12 @@ function createNotificationStore() {
     // Fetch notifications from the service
     async function fetchNotifications() {
         if (!userId) return;
+        
+        // Skip fetching if we already know the collection is missing
+        if (isCollectionMissing) {
+            update(state => ({ ...state, loading: false, error: null }));
+            return;
+        }
         
         update(state => ({ ...state, loading: true, error: null }));
         
@@ -71,19 +80,35 @@ function createNotificationStore() {
         } catch (error: any) {
             console.error('Error fetching notifications:', error);
             
-            // Don't show error to user if it's just that the collection doesn't exist
+            // Check if it's a collection not found error
             const isCollectionNotFoundError = 
                 error?.code === 404 || 
-                (error?.message && error.message.includes('collection doesn\'t exist'));
+                (error?.message && (
+                    error.message.includes('collection doesn\'t exist') || 
+                    error.message.includes('collection not found')
+                ));
                 
+            if (isCollectionNotFoundError) {
+                isCollectionMissing = true;
+                // Stop polling if collection doesn't exist
+                stopPolling();
+                
+                // Mark in localStorage that the collection is missing
+                if (browser) {
+                    try {
+                        localStorage.setItem('notificationsCollectionMissing', 'true');
+                    } catch (e) {
+                        // Ignore localStorage errors
+                    }
+                }
+            }
+            
             update(state => ({
                 ...state,
                 loading: false,
                 // Only set error if it's not a collection not found error
                 error: isCollectionNotFoundError ? null : 'Failed to load notifications'
             }));
-            
-            // Don't stop polling on error - we'll try again next interval
         }
     }
     
@@ -96,18 +121,10 @@ function createNotificationStore() {
         init: (id: string) => {
             userId = id;
             
-            // Reset store state
-            update(state => ({
-                ...state,
-                notifications: [],
-                unreadCount: 0,
-                loading: false,
-                error: null
-            }));
-            
             // Start polling for notifications
             startPolling();
             
+            // Return cleanup function
             return () => {
                 stopPolling();
             };
@@ -117,7 +134,6 @@ function createNotificationStore() {
          * Clear the notification store
          */
         clear: () => {
-            userId = null;
             stopPolling();
             set(initialState);
         },
@@ -126,39 +142,24 @@ function createNotificationStore() {
          * Mark a notification as read
          */
         markAsRead: async (notificationId: string) => {
+            if (isCollectionMissing) return;
+            
             try {
                 await notificationService.markAsRead(notificationId);
                 
-                // Update the store
                 update(state => {
                     const updatedNotifications = state.notifications.map(n => 
                         n.$id === notificationId ? { ...n, isRead: true } : n
                     );
                     
-                    const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
-                    
                     return {
                         ...state,
                         notifications: updatedNotifications,
-                        unreadCount
+                        unreadCount: updatedNotifications.filter(n => !n.isRead).length
                     };
                 });
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Error marking notification as read:', error);
-                // Still update the UI optimistically
-                update(state => {
-                    const updatedNotifications = state.notifications.map(n => 
-                        n.$id === notificationId ? { ...n, isRead: true } : n
-                    );
-                    
-                    const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
-                    
-                    return {
-                        ...state,
-                        notifications: updatedNotifications,
-                        unreadCount
-                    };
-                });
             }
         },
         
@@ -166,23 +167,18 @@ function createNotificationStore() {
          * Mark all notifications as read
          */
         markAllAsRead: async (userId: string) => {
+            if (isCollectionMissing) return;
+            
             try {
                 await notificationService.markAllAsRead(userId);
                 
-                // Update the store
                 update(state => ({
                     ...state,
                     notifications: state.notifications.map(n => ({ ...n, isRead: true })),
                     unreadCount: 0
                 }));
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Error marking all notifications as read:', error);
-                // Still update the UI optimistically
-                update(state => ({
-                    ...state,
-                    notifications: state.notifications.map(n => ({ ...n, isRead: true })),
-                    unreadCount: 0
-                }));
             }
         },
         
@@ -190,53 +186,34 @@ function createNotificationStore() {
          * Delete a notification
          */
         deleteNotification: async (notificationId: string) => {
+            if (isCollectionMissing) return;
+            
             try {
                 await notificationService.deleteNotification(notificationId);
                 
-                // Update the store
                 update(state => {
                     const updatedNotifications = state.notifications.filter(n => n.$id !== notificationId);
-                    const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
                     
                     return {
                         ...state,
                         notifications: updatedNotifications,
-                        unreadCount
+                        unreadCount: updatedNotifications.filter(n => !n.isRead).length
                     };
                 });
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Error deleting notification:', error);
-                // Still update the UI optimistically
-                update(state => {
-                    const updatedNotifications = state.notifications.filter(n => n.$id !== notificationId);
-                    const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
-                    
-                    return {
-                        ...state,
-                        notifications: updatedNotifications,
-                        unreadCount
-                    };
-                });
             }
         },
         
         /**
          * Create a notification
          */
-        createNotification: async (params: {
-            title: string;
-            message: string;
-            type: keyof typeof NOTIFICATION_TYPES;
-        }) => {
-            if (!userId) return;
+        createNotification: async (params: any) => {
+            if (isCollectionMissing) return null;
             
             try {
-                const notification = await notificationService.createNotification({
-                    userId,
-                    ...params
-                });
+                const notification = await notificationService.createNotification(params);
                 
-                // Update the store
                 update(state => ({
                     ...state,
                     notifications: [notification, ...state.notifications],
@@ -244,23 +221,10 @@ function createNotificationStore() {
                 }));
                 
                 return notification;
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Error creating notification:', error);
+                return null;
             }
-        },
-        
-        /**
-         * Reset the error state
-         */
-        resetError: () => {
-            update(state => ({ ...state, error: null }));
-        },
-        
-        /**
-         * Clean up the store (call on component unmount)
-         */
-        cleanup: () => {
-            stopPolling();
         }
     };
 }

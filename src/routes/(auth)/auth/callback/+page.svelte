@@ -7,55 +7,13 @@
     import { ROUTES } from '$lib/config';
     import { page } from '$app/stores';
     import { Alert, AlertDescription } from '$lib/components/ui/alert';
+    import { userStore } from '$lib/stores/userStore';
 
     let error: string | null = null;
-    let loading = true;
-    let message = 'Completing authentication...';
+    let loading = false;
+    let message = 'Auth callback page - UI testing mode';
 
-    onMount(async () => {
-        try {
-            // Check if there's an error parameter in the URL
-            const urlError = $page.url.searchParams.get('error');
-            if (urlError) {
-                throw new Error(decodeURIComponent(urlError));
-            }
-
-            message = 'Verifying your account...';
-            const user = await authService.handleOAuthCallback();
-            
-            if (user) {
-                message = 'Authentication successful! Redirecting...';
-                
-                // Get the redirect URL from the query parameters or use the default dashboard
-                const redirectTo = $page.url.searchParams.get('redirect') || '';
-                
-                // Redirect to the appropriate dashboard based on user role or the specified redirect URL
-                setTimeout(() => {
-                    if (redirectTo) {
-                        goto(redirectTo);
-                    } else {
-                        const dashboardRoute = user.role === 'ADMIN' 
-                            ? ROUTES.ADMIN_DASHBOARD 
-                            : user.role === 'TEACHER' 
-                                ? ROUTES.TEACHER_DASHBOARD 
-                                : ROUTES.STUDENT_DASHBOARD;
-                        goto(dashboardRoute);
-                    }
-                }, 1000);
-            } else {
-                throw new Error('Failed to get user after OAuth callback');
-            }
-        } catch (err) {
-            console.error('OAuth callback error:', err);
-            loading = false;
-            error = err instanceof Error ? err.message : 'Authentication failed';
-            
-            // Redirect to login page after a delay
-            setTimeout(() => {
-                goto(`${ROUTES.LOGIN}?error=google_auth_failed`);
-            }, 3000);
-        }
-    });
+    // For UI testing, we're not redirecting
 </script>
 
 <div class="flex min-h-screen bg-background">
@@ -68,33 +26,18 @@
             </h1>
             
             <div class="p-8 bg-card rounded-lg shadow-sm border border-border/60">
-                <h2 class="text-xl font-medium mb-6">
-                    {#if error}
-                        Authentication Failed
-                    {:else}
-                        Authentication in Progress
-                    {/if}
-                </h2>
-                
-                {#if error}
-                    <div class="animate-in fade-in duration-300">
-                        <Alert variant="destructive" class="mb-6 border-destructive/30 text-destructive">
-                            <AlertCircle class="h-4 w-4 mr-2" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                        <p class="text-sm text-muted-foreground">
-                            Redirecting back to login page...
-                        </p>
-                    </div>
-                {:else}
-                    <div class="flex flex-col items-center space-y-6 animate-in fade-in duration-300">
-                        <div class="relative">
-                            <div class="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
-                            <Loader2 class="w-12 h-12 absolute inset-0 text-primary animate-pulse opacity-75" />
-                        </div>
-                        <p class="text-muted-foreground">{message}</p>
-                    </div>
-                {/if}
+                <h2 class="text-xl font-medium mb-6">Auth Callback Page</h2>
+                <p class="text-muted-foreground mb-4">This is the OAuth callback page.</p>
+                <p class="text-muted-foreground">In normal operation, you would be redirected to your dashboard.</p>
+                <div class="mt-6">
+                    <a href="/admin/dashboard" class="text-primary hover:underline">Go to Admin Dashboard</a>
+                </div>
+                <div class="mt-2">
+                    <a href="/teacher/dashboard" class="text-primary hover:underline">Go to Teacher Dashboard</a>
+                </div>
+                <div class="mt-2">
+                    <a href="/student/dashboard" class="text-primary hover:underline">Go to Student Dashboard</a>
+                </div>
             </div>
         </div>
     </div>

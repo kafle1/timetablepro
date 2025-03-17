@@ -1,10 +1,9 @@
 import { redirect } from '@sveltejs/kit';
-import type { LayoutLoad } from './$types';
-import { ROUTES } from '$lib/config';
-import { authStore } from '$lib/stores/auth';
-import { get } from 'svelte/store';
+import type { RequestEvent } from '@sveltejs/kit';
+import { ROUTES, USER_ROLES } from '$lib/config';
+import type { User } from '$lib/types';
 
-export const load: LayoutLoad = async ({ url }) => {
+export async function load({ locals, url }: RequestEvent) {
     // Always return a mock admin user for UI testing
     return {
         user: {
@@ -25,4 +24,4 @@ export const load: LayoutLoad = async ({ url }) => {
             $permissions: []
         }
     };
-}; 
+} 

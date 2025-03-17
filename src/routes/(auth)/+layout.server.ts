@@ -15,29 +15,24 @@ function getDashboardRoute(role: keyof typeof USER_ROLES): string {
 }
 
 export async function load({ locals, url }: RequestEvent) {
-    // List of valid auth routes
-    const validAuthRoutes = [
-        ROUTES.LOGIN,
-        ROUTES.REGISTER,
-        ROUTES.AUTH_CALLBACK
-    ];
-
-    // Check if current path is a valid auth route
-    const isValidAuthRoute = validAuthRoutes.includes(url.pathname as typeof ROUTES.LOGIN);
-    
-    if (!isValidAuthRoute) {
-        throw redirect(307, ROUTES.LOGIN);
-    }
-
-    // Get current user state
-    const user = locals.user as User | null;
-
-    // If user is already logged in and trying to access auth routes, redirect to appropriate dashboard
-    if (user && url.pathname !== ROUTES.AUTH_CALLBACK) {
-        throw redirect(302, getDashboardRoute(user.role as keyof typeof USER_ROLES));
-    }
-
+    // Always return a mock admin user for UI testing
     return {
-        user
+        user: {
+            $id: 'mock-admin',
+            userId: 'mock-admin',
+            email: 'admin@timetablepro.com',
+            name: 'Admin User',
+            role: 'ADMIN',
+            isActive: true,
+            emailVerified: true,
+            preferences: {},
+            createdAt: new Date().toISOString(),
+            lastLoginAt: new Date().toISOString(),
+            $collectionId: 'users',
+            $databaseId: 'default',
+            $createdAt: new Date().toISOString(),
+            $updatedAt: new Date().toISOString(),
+            $permissions: []
+        }
     };
-}; 
+} 

@@ -191,7 +191,8 @@ class AuthService {
 
       // Check if using test credentials
       if (email in testCredentials && password === testCredentials[email].password) {
-        // For test accounts, create a mock user
+        // For test accounts, create a mock user without trying to create a session
+        // This avoids rate limiting issues with Appwrite
         const mockUser = {
           $id: `test-${testCredentials[email].role.toLowerCase()}`,
           userId: `test-${testCredentials[email].role.toLowerCase()}`,
@@ -205,24 +206,9 @@ class AuthService {
           lastLoginAt: new Date().toISOString()
         };
         
-        // Create a session for the test user
-        try {
-          // First try to delete any existing session
-          try {
-            // Check if there's an existing session before trying to delete it
-            const hasSession = localStorage.getItem('cookieFallback') !== null;
-            if (hasSession) {
-              await account.deleteSession('current');
-            }
-          } catch (e) {
-            // Ignore errors when no session exists
-          }
-          
-          // Create a new session
-          await account.createEmailSession(email, password);
-        } catch (sessionError) {
-          console.error('Error creating session for test user:', sessionError);
-          // Continue anyway since we're using a mock user
+        // Store the mock user in localStorage to maintain session
+        if (browser) {
+          localStorage.setItem('currentUser', JSON.stringify(mockUser));
         }
         
         // Reset login attempts on successful login
@@ -244,7 +230,15 @@ class AuthService {
       }
       
       // Create new session
-      await account.createEmailSession(email, password);
+      try {
+        await account.createEmailSession(email, password);
+      } catch (error: any) {
+        // Handle rate limiting specifically
+        if (error.code === 429) {
+          throw new Error('Too many login attempts. Please wait a few minutes and try again.');
+        }
+        throw error;
+      }
       
       // Get the current account
       const currentAccount = await account.get();
@@ -268,6 +262,11 @@ class AuthService {
           lastLoginAt: new Date().toISOString()
         }
       );
+      
+      // Store user in localStorage as backup
+      if (browser) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      }
       
       // Reset login attempts on successful login
       this.resetLoginAttempts(email);
@@ -316,19 +315,22 @@ class AuthService {
       // Clear any local storage items related to authentication
       if (browser) {
         localStorage.removeItem('cookieFallback');
+        localStorage.removeItem('currentUser');
         // Don't remove rememberedEmail as that's a user preference
       }
       
-      // Redirect to login page
+      // UI Testing Mode - No Redirection
       if (browser) {
-        // Use direct window location for more reliable navigation
-        window.location.href = '/login?success=logout';
+        console.log('UI Testing Mode - No Redirection in Auth Service Logout');
       }
     } catch (error) {
       console.error('Error during logout:', error);
-      // Still redirect to login page even if there was an error
+      // UI Testing Mode - No Redirection
       if (browser) {
-        window.location.href = '/login?error=logout_failed';
+        // Clear localStorage before redirecting
+        localStorage.removeItem('cookieFallback');
+        localStorage.removeItem('currentUser');
+        console.log('UI Testing Mode - No Redirection in Auth Service Logout (Error)');
       }
     }
   }
@@ -349,7 +351,22 @@ class AuthService {
         return null;
       }
       
-      // Check localStorage for a session token first
+      // Try to get user from localStorage backup first
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser) as User;
+          // Validate the user object has required fields
+          if (user && user.$id && user.email && user.role) {
+            return user;
+          }
+        } catch (e) {
+          console.error('Error parsing stored user:', e);
+          localStorage.removeItem('currentUser');
+        }
+      }
+      
+      // Check localStorage for a session token
       const hasSession = localStorage.getItem('cookieFallback') !== null;
       if (!hasSession) {
         return null;
@@ -366,7 +383,7 @@ class AuthService {
               ? 'TEACHER' 
               : 'STUDENT';
               
-          return {
+          const user = {
             $id: currentAccount.$id,
             userId: currentAccount.$id,
             email: currentAccount.email,
@@ -378,33 +395,52 @@ class AuthService {
             createdAt: new Date().toISOString(),
             lastLoginAt: new Date().toISOString()
           } as unknown as User;
+          
+          // Store in localStorage as backup
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          
+          return user;
         }
         
         // Get the user document from database for regular users
         try {
           const user = await this.getUserById(currentAccount.$id);
+          // Store in localStorage as backup
+          localStorage.setItem('currentUser', JSON.stringify(user));
           return user;
         } catch (error) {
           // If user document doesn't exist but session does, create the user document
           console.log('User document not found, creating one for the anonymous user');
-          return await this.createUserForAnonymousSession(currentAccount);
+          const user = await this.createUserForAnonymousSession(currentAccount);
+          // Store in localStorage as backup
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          return user;
         }
       } catch (error: any) {
-        // Only log the error if it's not a 401 (unauthorized)
-        if (!error || error.code !== 401) {
-          console.error('Error getting current account:', error);
-        }
+        // Handle session errors
+        console.error('Error getting current account:', error);
         
-        // Handle browser extension errors
-        if (error && (
-            (error.message && (
-              error.message.includes('message port closed') || 
-              error.message.includes('back/forward cache') ||
-              error.message.includes('runtime.lastError')
-            )) || 
-            (error.toString && error.toString().includes('runtime.lastError'))
-        )) {
-          console.warn('Browser extension may be interfering with session retrieval, retrying...');
+        // Check for browser extension errors
+        const errorStr = error.toString ? error.toString() : '';
+        const errorMsg = error.message || '';
+        
+        if (
+          errorMsg.includes('message port closed') || 
+          errorMsg.includes('back/forward cache') ||
+          errorMsg.includes('runtime.lastError') ||
+          errorStr.includes('runtime.lastError')
+        ) {
+          console.warn('Browser extension interference detected, using localStorage backup');
+          
+          // Try to use localStorage backup
+          if (storedUser) {
+            try {
+              return JSON.parse(storedUser) as User;
+            } catch (e) {
+              console.error('Error parsing stored user:', e);
+            }
+          }
+          
           // Wait a moment and retry
           return new Promise((resolve) => {
             setTimeout(async () => {
@@ -415,17 +451,23 @@ class AuthService {
                 console.error('Failed to get current user on retry:', retryError);
                 resolve(null);
               }
-            }, 300); // Increased timeout for better reliability
+            }, 300);
           });
+        }
+        
+        // If the error is related to an invalid session, clear it
+        if (error.code === 401) {
+          try {
+            localStorage.removeItem('cookieFallback');
+          } catch (e) {
+            console.error('Error clearing invalid session:', e);
+          }
         }
         
         return null;
       }
-    } catch (error: any) {
-      // Log detailed error information
+    } catch (error) {
       console.error('Error in getCurrentUser:', error);
-      
-      // If no session exists, return null
       return null;
     }
   }
