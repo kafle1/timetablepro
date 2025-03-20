@@ -324,33 +324,49 @@ class AuthService {
   async getCurrentUser(retryCount = 0): Promise<User | null> {
     // Prevent infinite recursion
     if (retryCount > 2) {
-      console.error('Maximum retry count reached, returning null');
+      console.error('[AuthService] Maximum retry count reached, returning null');
       return null;
     }
     
     try {
+      console.log('[AuthService] getCurrentUser called', { retryCount, browser });
+      
       // Check if we're in a browser environment
       if (!browser) {
+        console.log('[AuthService] Not in browser environment, returning null');
         return null;
       }
       
       // First check for mock session (test accounts)
       const mockSessionToken = localStorage.getItem('mockSessionToken');
       const storedUser = localStorage.getItem('currentUser');
+      const cookieFallback = localStorage.getItem('cookieFallback');
+      
+      console.log('[AuthService] Checking localStorage:', { 
+        hasMockToken: !!mockSessionToken, 
+        hasStoredUser: !!storedUser,
+        hasCookieFallback: !!cookieFallback 
+      });
       
       if (mockSessionToken && storedUser) {
         try {
+          console.log('[AuthService] Found mock session, validating');
           // Verify the mock session isn't expired
           const mockSession = JSON.parse(atob(mockSessionToken));
+          console.log('[AuthService] Mock session data:', mockSession);
+          
           if (mockSession.exp > Date.now()) {
-            return JSON.parse(storedUser) as User;
+            const user = JSON.parse(storedUser) as User;
+            console.log('[AuthService] Mock session valid, returning user:', user);
+            return user;
           } else {
             // Clear expired mock session
+            console.log('[AuthService] Mock session expired, clearing data');
             localStorage.removeItem('mockSessionToken');
             localStorage.removeItem('currentUser');
           }
         } catch (e) {
-          console.error('Error parsing mock session:', e);
+          console.error('[AuthService] Error parsing mock session:', e);
           localStorage.removeItem('mockSessionToken');
           localStorage.removeItem('currentUser');
         }
@@ -359,43 +375,64 @@ class AuthService {
       // Then check for a regular Appwrite session
       const hasAppwriteSession = localStorage.getItem('cookieFallback') !== null;
       
+      console.log('[AuthService] Checking for Appwrite session:', { hasAppwriteSession });
+      
       if (!hasAppwriteSession) {
+        console.log('[AuthService] No Appwrite session found, returning null');
         return null;
       }
       
       try {
+        console.log('[AuthService] Attempting to get account details from Appwrite');
         const currentAccount = await account.get();
+        console.log('[AuthService] Retrieved account details:', currentAccount);
         
         // Check if this is a stored user
         if (storedUser) {
+          console.log('[AuthService] Found stored user, comparing with account');
           const user = JSON.parse(storedUser) as User;
           if (user.email === currentAccount.email) {
+            console.log('[AuthService] Stored user matches account, returning stored user');
             return user;
           }
+          console.log('[AuthService] Stored user does not match account, fetching from database');
         }
         
         // Otherwise get from database
+        console.log('[AuthService] Querying database for user with email:', currentAccount.email);
         const response = await databases.listDocuments(
           DB_CONFIG.databaseId,
           DB_CONFIG.collections.USERS,
           [Query.equal('email', [currentAccount.email])]
         );
+        console.log('[AuthService] Database query results:', { 
+          total: response.total,
+          hasDocuments: response.documents.length > 0 
+        });
         
         if (response.documents.length === 0) {
+          console.error('[AuthService] User not found in database for email:', currentAccount.email);
           throw new Error('User not found in database');
         }
         
         const user = response.documents[0] as unknown as User;
+        console.log('[AuthService] User found in database:', { 
+          userId: user.userId, 
+          email: user.email,
+          role: user.role
+        });
         
         // Store in localStorage for future use
         localStorage.setItem('currentUser', JSON.stringify(user));
+        console.log('[AuthService] Updated stored user in localStorage');
         
         return user;
       } catch (error) {
-        console.error('Error getting current user:', error);
+        console.error('[AuthService] Error getting current user:', error);
         
         // Clear invalid session data
         if (error instanceof AppwriteException && error.code === 401) {
+          console.log('[AuthService] Unauthorized (401), clearing localStorage data');
           localStorage.removeItem('cookieFallback');
           localStorage.removeItem('currentUser');
         }
@@ -403,7 +440,7 @@ class AuthService {
         return null;
       }
     } catch (error) {
-      console.error('Error in getCurrentUser:', error);
+      console.error('[AuthService] Unexpected error in getCurrentUser:', error);
       return null;
     }
   }

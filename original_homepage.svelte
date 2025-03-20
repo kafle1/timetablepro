@@ -1,68 +1,19 @@
 <!-- TimeTablePro Homepage -->
 <script lang="ts">
-  import { ArrowRight, Calendar, Users, School, Bell, BarChart, CheckCircle, Shield, Clock, Zap, LogOut, UserCircle, Home, Settings, ChevronDown } from 'lucide-svelte';
+  import { ArrowRight, Calendar, Users, School, Bell, BarChart, CheckCircle, Shield, Clock, Zap } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Avatar } from '$lib/components/ui/avatar';
   import { Badge } from '$lib/components/ui/badge';
-  import { userStore } from '$lib/stores/user';
+  import { userStore } from '$lib/stores/userStore';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { USER_ROLES, ROUTES } from '$lib/config';
-  import { authStore } from '$lib/stores/auth';
-  import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '$lib/components/ui/dropdown-menu';
-  import { browser } from '$app/environment';
+  import { USER_ROLES } from '$lib/config';
 
-  // Auth status tracking
-  let isAuthenticated = false;
-  let currentUser: any = null;
-
-  // Check authentication status and redirect if needed
-  onMount(async () => {
-    try {
-      // Check if user is already logged in
-      const user = await authStore.checkSession();
-      if (user) {
-        isAuthenticated = true;
-        currentUser = user;
-        console.log('User authenticated:', user.email, user.role);
-        
-        // Check if we're on the homepage after login (via URL parameter)
-        if (browser && window.location.search.includes('redirect_to_dashboard=true')) {
-          // Remove the parameter from URL
-          const url = new URL(window.location.href);
-          url.searchParams.delete('redirect_to_dashboard');
-          window.history.replaceState({}, '', url.toString());
-          
-          // Redirect to appropriate dashboard
-          const dashboardRoute = getDashboardRoute(user.role);
-          console.log('Redirecting to dashboard:', dashboardRoute);
-          goto(dashboardRoute);
-        }
-      }
-    } catch (err) {
-      console.error('Error checking authentication:', err);
-    }
+  // UI testing mode - no redirection
+  onMount(() => {
+    console.log('UI Testing Mode - No Redirection');
   });
-
-  // Handle logout
-  function handleLogout() {
-    authStore.logout();
-  }
-
-  // Get dashboard route based on user role
-  function getDashboardRoute(role: string): string {
-    if (!role) return ROUTES.LOGIN;
-    
-    switch (role) {
-      case USER_ROLES.ADMIN:
-        return ROUTES.ADMIN_DASHBOARD;
-      case USER_ROLES.TEACHER:
-        return ROUTES.TEACHER_DASHBOARD;
-      default:
-        return ROUTES.STUDENT_DASHBOARD;
-    }
-  }
 
   // Feature cards
   const features = [
@@ -155,61 +106,10 @@
         <a href="#testimonials" class="text-secondary-600 hover:text-primary transition-colors">Testimonials</a>
       </div>
       <div class="flex items-center gap-4">
-        {#if isAuthenticated}
-          <!-- Authenticated user menu -->
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="ghost" class="flex items-center gap-2 py-1 px-3 hover:bg-primary-50 rounded-full transition-colors">
-                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-600 font-semibold">
-                  {currentUser?.name?.substring(0, 1).toUpperCase() || 'U'}
-                </div>
-                <span class="hidden sm:inline">{currentUser?.name?.split(' ')[0] || 'User'}</span>
-                <ChevronDown class="w-4 h-4 opacity-70 hidden sm:block" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" class="w-56 shadow-lg rounded-lg border-border">
-              <div class="px-4 py-3 border-b border-border">
-                <p class="text-sm font-semibold">{currentUser?.name || 'User'}</p>
-                <p class="text-xs text-muted-foreground truncate">{currentUser?.email || ''}</p>
-              </div>
-              <div class="p-2">
-                <DropdownMenuItem asChild>
-                  <a href={getDashboardRoute(currentUser?.role)} class="cursor-pointer flex items-center">
-                    <Home class="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>Dashboard</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={ROUTES.PROFILE} class="cursor-pointer flex items-center">
-                    <UserCircle class="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>Profile</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={ROUTES.SETTINGS} class="cursor-pointer flex items-center">
-                    <Settings class="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>Settings</span>
-                  </a>
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator />
-              <div class="p-2">
-                <DropdownMenuItem>
-                  <button class="w-full text-left cursor-pointer text-destructive flex items-center" on:click={handleLogout}>
-                    <LogOut class="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
-                </DropdownMenuItem>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        {:else}
-          <!-- Guest options -->
-          <a href="/login" class="text-secondary-600 hover:text-primary transition-colors px-3 py-2">Login</a>
-          <a href="/register" class="px-4 py-2 text-white transition-colors rounded-md bg-primary hover:bg-primary-600">
-            Register
-          </a>
-        {/if}
+        <a href="/login" class="text-secondary-600 hover:text-primary">Login</a>
+        <a href="/register" class="px-4 py-2 text-white transition-colors rounded-md bg-primary hover:bg-primary-600">
+          Register
+        </a>
       </div>
     </nav>
   </header>
@@ -229,18 +129,12 @@
               Eliminate scheduling conflicts and optimize resource allocation with our AI-powered timetabling system designed specifically for educational institutions.
             </p>
             <div class="flex flex-col gap-4 sm:flex-row">
-              {#if isAuthenticated}
-                <Button size="lg" class="font-medium text-white transition-colors bg-primary-600 hover:bg-primary-700" on:click={() => goto(getDashboardRoute(currentUser?.role))}>
-                  Go to Dashboard <ArrowRight class="w-5 h-5 ml-2" />
-                </Button>
-              {:else}
-                <Button size="lg" class="font-medium text-white transition-colors bg-primary-600 hover:bg-primary-700" on:click={() => goto('/register')}>
-                  Get Started <ArrowRight class="w-5 h-5 ml-2" />
-                </Button>
-                <Button size="lg" variant="outline" class="font-medium transition-colors border-2 border-primary-600 text-primary-600 hover:bg-primary-50">
-                  Watch Demo <Calendar class="w-5 h-5 ml-2" />
-                </Button>
-              {/if}
+              <Button size="lg" class="font-medium text-white transition-colors bg-primary-600 hover:bg-primary-700">
+                Get Started <ArrowRight class="w-5 h-5 ml-2" />
+              </Button>
+              <Button size="lg" variant="outline" class="font-medium transition-colors border-2 border-primary-600 text-primary-600 hover:bg-primary-50">
+                Watch Demo <Calendar class="w-5 h-5 ml-2" />
+              </Button>
             </div>
             <div class="flex flex-wrap items-center gap-4 pt-4 text-sm text-secondary-500">
               <div class="flex items-center">
