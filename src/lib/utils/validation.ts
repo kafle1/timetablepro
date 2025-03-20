@@ -293,35 +293,31 @@ export function validateScheduleTime(startTime: string, duration: number): void 
     const minutes = start.getMinutes();
 
     // Check if time is within allowed hours
-    if (hour < TIME_CONFIG.TIME_SLOTS.START_HOUR || hour > TIME_CONFIG.TIME_SLOTS.END_HOUR) {
-        throw new AppError(
-            `Schedule must be between ${TIME_CONFIG.TIME_SLOTS.START_HOUR}:00 and ${TIME_CONFIG.TIME_SLOTS.END_HOUR}:00`,
-            'INVALID_TIME'
+    if (hour < TIME_CONFIG.WORKING_HOURS.START || hour > TIME_CONFIG.WORKING_HOURS.END) {
+        throw new Error(
+            `Schedule must be between ${TIME_CONFIG.WORKING_HOURS.START}:00 and ${TIME_CONFIG.WORKING_HOURS.END}:00`
         );
     }
 
-    // Check if minutes align with slot duration
-    if (minutes % TIME_CONFIG.TIME_SLOTS.SLOT_DURATION !== 0) {
-        throw new AppError(
-            `Start time minutes must be in increments of ${TIME_CONFIG.TIME_SLOTS.SLOT_DURATION}`,
-            'INVALID_TIME'
+    // Validate minutes are in correct increments
+    if (minutes % TIME_CONFIG.DEFAULT_SLOT_DURATION !== 0) {
+        throw new Error(
+            `Start time minutes must be in increments of ${TIME_CONFIG.DEFAULT_SLOT_DURATION}`
         );
     }
 
-    // Check if duration is valid
-    if (duration < TIME_CONFIG.TIME_SLOTS.SLOT_DURATION || duration % TIME_CONFIG.TIME_SLOTS.SLOT_DURATION !== 0) {
-        throw new AppError(
-            `Duration must be in increments of ${TIME_CONFIG.TIME_SLOTS.SLOT_DURATION} minutes`,
-            'INVALID_DURATION'
+    // Validate duration
+    if (duration < TIME_CONFIG.DEFAULT_SLOT_DURATION || duration % TIME_CONFIG.DEFAULT_SLOT_DURATION !== 0) {
+        throw new Error(
+            `Duration must be in increments of ${TIME_CONFIG.DEFAULT_SLOT_DURATION} minutes`
         );
     }
 
-    // Check if schedule ends before closing time
+    // Validate end time is within working hours
     const end = new Date(start.getTime() + duration * 60000);
-    if (end.getHours() > TIME_CONFIG.TIME_SLOTS.END_HOUR) {
-        throw new AppError(
-            `Schedule must end before ${TIME_CONFIG.TIME_SLOTS.END_HOUR}:00`,
-            'INVALID_TIME'
+    if (end.getHours() > TIME_CONFIG.WORKING_HOURS.END) {
+        throw new Error(
+            `Schedule must end before ${TIME_CONFIG.WORKING_HOURS.END}:00`
         );
     }
 }

@@ -1,100 +1,163 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte';
-  import { scheduleService } from '$lib/services/schedule';
+  import { onMount } from 'svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+  import { Badge } from '$lib/components/ui/badge';
+  import { 
+    Table, 
+    TableBody, 
+    TableCaption, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow 
+  } from '$lib/components/ui/table';
   import { roomService } from '$lib/services/room';
   import { authService } from '$lib/services/auth';
+  import { format } from 'date-fns';
   import type { Schedule, Room, User } from '$lib/types';
-  import { DAYS_OF_WEEK, CONFLICT_STATUS, USER_ROLES } from '$lib/config/constants';
+  import { MoreHorizontal, ArrowUpDown, X, Check, AlertCircle } from 'lucide-svelte';
   
-  export let teacherId: string = '';
-  export let roomId: string = '';
-  export let dayOfWeek: string = '';
-  export let showFilters: boolean = true;
+  // Props
+  export let schedules: Schedule[] = [];
+  export let loading: boolean = false;
+  export let onEdit: ((schedule: Schedule) => void) | undefined = undefined;
+  export let onDelete: ((scheduleId: string) => void) | undefined = undefined;
   
-  const dispatch = createEventDispatcher();
-  
-  let schedules: Schedule[] = [];
+  // State
+  let filteredSchedules: Schedule[] = [];
   let rooms: Room[] = [];
   let teachers: User[] = [];
-  let loading = true;
-  let error = '';
   
-  // Filter states
-  let selectedTeacherId = teacherId;
-  let selectedRoomId = roomId;
-  let selectedDayOfWeek = dayOfWeek;
+  // Filter state
+  let filters = {
+    room: '',
+    teacher: '',
+    subject: '',
+    date: '',
+    status: ''
+  };
+  
+  type SortableField = keyof Schedule | '';
+  
+  // Sort state
+  let sortField: SortableField = '';
+  let sortDirection: 'asc' | 'desc' = 'asc';
   
   onMount(async () => {
     try {
-      // Load rooms and teachers for filters
-      const [roomsResponse, teachersResponse] = await Promise.all([
+      // Load room and teacher data for filters
+      const [roomsData, teachersData] = await Promise.all([
         roomService.list(),
-        authService.getUsers()
+        authService.getTeachers()
       ]);
       
-      rooms = roomsResponse.documents as Room[];
-      teachers = teachersResponse.filter(user => user.role === USER_ROLES.TEACHER) as User[];
+      rooms = roomsData.documents as unknown as Room[];
+      teachers = teachersData as User[];
       
-      // Load schedules with initial filters
-      await loadSchedules();
-    } catch (err: any) {
-      error = err.message || 'Failed to load data';
-      console.error('Error loading data:', err);
-    } finally {
-      loading = false;
+      // Initial filtering
+      updateFilteredSchedules();
+    } catch (error) {
+      console.error('Error loading filter data:', error);
     }
   });
   
-  async function loadSchedules() {
-    loading = true;
-    error = '';
-    
-    try {
-      const filters: Record<string, string> = {};
-      
-      if (selectedTeacherId) {
-        filters.teacherId = selectedTeacherId;
-      }
-      
-      if (selectedRoomId) {
-        filters.roomId = selectedRoomId;
-      }
-      
-      if (selectedDayOfWeek) {
-        filters.dayOfWeek = selectedDayOfWeek;
-      }
-      
-      const response = await scheduleService.listSchedules(filters);
-      schedules = response.documents as Schedule[];
-    } catch (err: any) {
-      error = err.message || 'Failed to load schedules';
-      console.error('Error loading schedules:', err);
-    } finally {
-      loading = false;
-    }
+  $: {
+    // Re-filter whenever schedules or filters change
+    updateFilteredSchedules();
   }
   
-  function handleEdit(schedule: Schedule) {
-    dispatch('edit', schedule);
+  function updateFilteredSchedules() {
+    let result = [...schedules];
+    
+    // Apply room filter
+    if (filters.room) {
+      result = result.filter(s => s.roomId === filters.room);
+    }
+    
+    // Apply teacher filter
+    if (filters.teacher) {
+      result = result.filter(s => s.teacherId === filters.teacher);
+    }
+    
+    // Apply subject filter
+    if (filters.subject) {
+      const subjectLower = filters.subject.toLowerCase();
+      result = result.filter(s => 
+        s.subject?.toLowerCase().includes(subjectLower) || 
+        s.className?.toLowerCase().includes(subjectLower)
+      );
+    }
+    
+    // Apply date filter
+    if (filters.date) {
+      const filterDate = new Date(filters.date);
+      result = result.filter(s => {
+        const scheduleDate = new Date(s.startTime);
+        return scheduleDate.toDateString() === filterDate.toDateString();
+      });
+    }
+    
+    // Apply status filter
+    if (filters.status) {
+      result = result.filter(s => s.conflictStatus === filters.status);
+    }
+    
+    // Apply sorting if set
+    if (sortField !== '') {
+      result.sort((a, b) => {
+        // Using bracket notation with type checking
+        const field = sortField as keyof Schedule;
+        const aValue = a[field];
+        const bValue = b[field];
+        
+        if (aValue === bValue) return 0;
+        
+        let comparison = 0;
+        if (aValue > bValue || bValue === undefined) {
+          comparison = 1;
+        } else if (aValue < bValue || aValue === undefined) {
+          comparison = -1;
+        }
+        
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+    
+    filteredSchedules = result;
   }
   
-  async function handleDelete(schedule: Schedule) {
-    if (!confirm('Are you sure you want to delete this schedule?')) {
-      return;
+  function resetFilters() {
+    filters = {
+      room: '',
+      teacher: '',
+      subject: '',
+      date: '',
+      status: ''
+    };
+    sortField = '';
+    sortDirection = 'asc';
+    updateFilteredSchedules();
+  }
+  
+  function handleSort(field: keyof Schedule) {
+    if (sortField === field) {
+      // Toggle direction if already sorting by this field
+      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      // Set new sort field and reset to ascending
+      sortField = field;
+      sortDirection = 'asc';
     }
     
-    loading = true;
-    error = '';
-    
-    try {
-      await scheduleService.deleteSchedule(schedule.$id);
-      schedules = schedules.filter(s => s.$id !== schedule.$id);
-    } catch (err: any) {
-      error = err.message || 'Failed to delete schedule';
-      console.error('Error deleting schedule:', err);
-    } finally {
-      loading = false;
-    }
+    updateFilteredSchedules();
+  }
+  
+  function getRoomName(roomId: string): string {
+    const room = rooms.find(r => r.$id === roomId);
+    return room ? room.name : 'Unknown Room';
   }
   
   function getTeacherName(teacherId: string): string {
@@ -102,188 +165,180 @@
     return teacher ? teacher.name : 'Unknown Teacher';
   }
   
-  function getRoomName(roomId: string): string {
-    const room = rooms.find(r => r.$id === roomId);
-    return room ? room.roomName : 'Unknown Room';
-  }
-  
-  function getDayLabel(dayValue: string): string {
-    const day = DAYS_OF_WEEK.find(d => d.value === dayValue);
-    return day ? day.label : dayValue;
-  }
-  
-  function getConflictStatusClass(status: string): string {
-    switch (status) {
-      case CONFLICT_STATUS.CONFLICT:
-        return 'bg-red-100 text-red-800';
-      case CONFLICT_STATUS.WARNING:
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-green-100 text-green-800';
+  function formatDateTime(dateStr: string): string {
+    try {
+      const date = new Date(dateStr);
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return 'Invalid Date';
     }
-  }
-  
-  function resetFilters() {
-    selectedTeacherId = '';
-    selectedRoomId = '';
-    selectedDayOfWeek = '';
-    loadSchedules();
   }
 </script>
 
-<div class="bg-white rounded-lg shadow">
-  {#if showFilters}
-    <div class="p-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900">Filters</h3>
-      <div class="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-3">
-        <div>
-          <label for="teacher" class="block text-sm font-medium text-gray-700">Teacher</label>
-          <select
-            id="teacher"
-            bind:value={selectedTeacherId}
-            on:change={loadSchedules}
-            class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="">All Teachers</option>
-            {#each teachers as teacher}
-              <option value={teacher.$id}>{teacher.name}</option>
-            {/each}
-          </select>
-        </div>
-        
-        <div>
-          <label for="room" class="block text-sm font-medium text-gray-700">Room</label>
-          <select
-            id="room"
-            bind:value={selectedRoomId}
-            on:change={loadSchedules}
-            class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="">All Rooms</option>
+<div class="space-y-4">
+  <!-- Filters -->
+  <div class="p-4 space-y-4 border rounded-md">
+    <h3 class="text-lg font-medium">Filters</h3>
+    
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+      <!-- Room Filter -->
+      <div class="space-y-2">
+        <Label for="room-filter">Room</Label>
+        <Select bind:value={filters.room}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Rooms" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Rooms</SelectItem>
             {#each rooms as room}
-              <option value={room.$id}>{room.roomName}</option>
+              <SelectItem value={room.$id}>{room.name}</SelectItem>
             {/each}
-          </select>
-        </div>
-        
-        <div>
-          <label for="day" class="block text-sm font-medium text-gray-700">Day</label>
-          <select
-            id="day"
-            bind:value={selectedDayOfWeek}
-            on:change={loadSchedules}
-            class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          >
-            <option value="">All Days</option>
-            {#each DAYS_OF_WEEK as day}
-              <option value={day.value}>{day.label}</option>
-            {/each}
-          </select>
-        </div>
+          </SelectContent>
+        </Select>
       </div>
       
-      <div class="flex justify-end mt-4">
-        <button
-          type="button"
-          on:click={resetFilters}
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          Reset Filters
-        </button>
+      <!-- Teacher Filter -->
+      <div class="space-y-2">
+        <Label for="teacher-filter">Teacher</Label>
+        <Select bind:value={filters.teacher}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Teachers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Teachers</SelectItem>
+            {#each teachers as teacher}
+              <SelectItem value={teacher.$id}>{teacher.name}</SelectItem>
+            {/each}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <!-- Subject/Class Filter -->
+      <div class="space-y-2">
+        <Label for="subject-filter">Subject/Class</Label>
+        <Input id="subject-filter" bind:value={filters.subject} placeholder="Search by name..." />
+      </div>
+      
+      <!-- Date Filter -->
+      <div class="space-y-2">
+        <Label for="date-filter">Date</Label>
+        <Input id="date-filter" type="date" bind:value={filters.date} />
       </div>
     </div>
-  {/if}
-  
-  {#if error}
-    <div class="p-4 text-sm text-red-700 bg-red-100 rounded-md">
-      {error}
+    
+    <div class="flex justify-end gap-2">
+      <Button variant="outline" on:click={resetFilters}>
+        <X class="w-4 h-4 mr-2" />
+        Reset Filters
+      </Button>
+      <Button on:click={updateFilteredSchedules}>
+        <Check class="w-4 h-4 mr-2" />
+        Apply Filters
+      </Button>
     </div>
-  {/if}
+  </div>
   
-  <div class="overflow-x-auto">
-    {#if loading}
-      <div class="flex items-center justify-center p-8">
-        <svg class="w-8 h-8 text-indigo-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-    {:else if schedules.length === 0}
-      <div class="p-8 text-center text-gray-500">
-        No schedules found. Try adjusting your filters or create a new schedule.
-      </div>
-    {:else}
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Class
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Teacher
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Room
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Day
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Time
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-              Status
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          {#each schedules as schedule}
-            <tr>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{schedule.className}</div>
-                <div class="text-sm text-gray-500">{schedule.subject}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{getTeacherName(schedule.teacherId)}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{getRoomName(schedule.roomId)}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{getDayLabel(schedule.dayOfWeek)}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{schedule.startTime} - {schedule.endTime}</div>
-                <div class="text-sm text-gray-500">{schedule.duration} min</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getConflictStatusClass(schedule.conflictStatus || CONFLICT_STATUS.NONE)}`}>
-                  {schedule.conflictStatus || CONFLICT_STATUS.NONE}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                <button
-                  type="button"
-                  on:click={() => handleEdit(schedule)}
-                  class="text-indigo-600 hover:text-indigo-900"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  on:click={() => handleDelete(schedule)}
-                  class="ml-4 text-red-600 hover:text-red-900"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
+  <!-- Schedule Table -->
+  <div class="border rounded-md">
+    <Table>
+      <TableCaption>
+        {filteredSchedules.length} schedule{filteredSchedules.length === 1 ? '' : 's'} found
+      </TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('className')}>
+            Class/Subject
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('roomId')}>
+            Room
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('teacherId')}>
+            Teacher
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('startTime')}>
+            Start Time
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('duration')}>
+            Duration
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('dayOfWeek')}>
+            Day
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('recurrence')}>
+            Recurrence
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          <TableHead class="cursor-pointer" on:click={() => handleSort('conflictStatus')}>
+            Status
+            <ArrowUpDown class="inline w-4 h-4 ml-1" />
+          </TableHead>
+          {#if onEdit || onDelete}
+            <TableHead class="text-right">Actions</TableHead>
+          {/if}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {#if loading}
+          <TableRow>
+            <TableCell colspan={onEdit || onDelete ? 9 : 8} class="text-center py-8">
+              <div class="flex justify-center">
+                <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </TableCell>
+          </TableRow>
+        {:else if filteredSchedules.length === 0}
+          <TableRow>
+            <TableCell colspan={onEdit || onDelete ? 9 : 8} class="text-center py-8">
+              <p class="text-muted-foreground">No schedules found</p>
+            </TableCell>
+          </TableRow>
+        {:else}
+          {#each filteredSchedules as schedule (schedule.$id)}
+            <TableRow>
+              <TableCell>
+                {schedule.className || schedule.subject || 'Untitled'}
+              </TableCell>
+              <TableCell>{getRoomName(schedule.roomId)}</TableCell>
+              <TableCell>{getTeacherName(schedule.teacherId)}</TableCell>
+              <TableCell>{formatDateTime(schedule.startTime)}</TableCell>
+              <TableCell>{schedule.duration} mins</TableCell>
+              <TableCell>{schedule.dayOfWeek ? schedule.dayOfWeek.charAt(0).toUpperCase() + schedule.dayOfWeek.slice(1) : 'N/A'}</TableCell>
+              <TableCell>{schedule.recurrence ? schedule.recurrence.charAt(0).toUpperCase() + schedule.recurrence.slice(1) : 'Once'}</TableCell>
+              <TableCell>
+                {#if schedule.conflictStatus === 'conflict'}
+                  <Badge variant="destructive">Conflict</Badge>
+                {:else if schedule.conflictStatus === 'warning'}
+                  <Badge variant="secondary">Warning</Badge>
+                {:else}
+                  <Badge variant="outline">OK</Badge>
+                {/if}
+              </TableCell>
+              {#if onEdit || onDelete}
+                <TableCell class="text-right">
+                  <div class="flex justify-end gap-2">
+                    {#if onEdit}
+                      <Button variant="ghost" size="sm" on:click={() => onEdit(schedule)}>
+                        Edit
+                      </Button>
+                    {/if}
+                    {#if onDelete}
+                      <Button variant="ghost" size="sm" on:click={() => onDelete(schedule.$id)}>
+                        Delete
+                      </Button>
+                    {/if}
+                  </div>
+                </TableCell>
+              {/if}
+            </TableRow>
           {/each}
-        </tbody>
-      </table>
-    {/if}
+        {/if}
+      </TableBody>
+    </Table>
   </div>
 </div> 

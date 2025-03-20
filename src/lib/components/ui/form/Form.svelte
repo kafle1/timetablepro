@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
     import { createEventDispatcher } from 'svelte';
     import type { FormErrors } from '$lib/types';
-    import { toasts } from '$lib/stores/toastStore';
+    import { toastStore } from '$lib/stores/toastStore';
     import LoadingButton from '../button/LoadingButton.svelte';
 
     export let data: T;
@@ -28,13 +28,13 @@
             try {
                 await onSubmit(data);
                 dispatch('submit', data);
-                toasts.success('Form submitted successfully');
+                toastStore.success('Form submitted successfully');
             } catch (error) {
-                toasts.error('Failed to submit form. Please try again.');
+                toastStore.error('Failed to submit form. Please try again.');
                 console.error('Form submission error:', error);
             }
         } else {
-            toasts.error('Please fix the errors in the form');
+            toastStore.error('Please fix the errors in the form');
         }
         submitting = false;
     }

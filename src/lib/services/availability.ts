@@ -1,5 +1,5 @@
 import { databases } from '$lib/config/appwrite';
-import { appwriteConfig } from '$lib/config/appwrite';
+import { DB_CONFIG } from '$lib/config/appwrite';
 import { ID, Query } from 'appwrite';
 import type { Models } from 'appwrite';
 
@@ -11,27 +11,26 @@ export type AvailabilityData = {
 
 export interface Availability extends Models.Document, AvailabilityData {}
 
-export async function getTeacherAvailability(teacherId: string) {
+export const getTeacherAvailability = async (teacherId: string) => {
     try {
         const response = await databases.listDocuments<Availability>(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.availability,
+            DB_CONFIG.databaseId,
+            DB_CONFIG.collections.TEACHER_AVAILABILITY,
             [Query.equal('teacherId', teacherId)]
         );
-
         return response.documents;
     } catch (error) {
         console.error('Error fetching teacher availability:', error);
-        throw error;
+        return [];
     }
-}
+};
 
-export async function setAvailability(availability: AvailabilityData) {
+export const updateTeacherAvailability = async (availability: Availability) => {
     try {
         // Check if availability already exists for this teacher and day
         const existing = await databases.listDocuments<Availability>(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.availability,
+            DB_CONFIG.databaseId,
+            DB_CONFIG.collections.TEACHER_AVAILABILITY,
             [
                 Query.equal('teacherId', availability.teacherId),
                 Query.equal('dayOfWeek', availability.dayOfWeek)
@@ -41,8 +40,8 @@ export async function setAvailability(availability: AvailabilityData) {
         if (existing.documents.length > 0) {
             // Update existing availability
             const response = await databases.updateDocument<Availability>(
-                appwriteConfig.databaseId,
-                appwriteConfig.collections.availability,
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.TEACHER_AVAILABILITY,
                 existing.documents[0].$id,
                 { availableSlots: availability.availableSlots }
             );
@@ -50,31 +49,31 @@ export async function setAvailability(availability: AvailabilityData) {
         } else {
             // Create new availability
             const response = await databases.createDocument<Availability>(
-                appwriteConfig.databaseId,
-                appwriteConfig.collections.availability,
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.TEACHER_AVAILABILITY,
                 ID.unique(),
                 availability
             );
             return response;
         }
     } catch (error) {
-        console.error('Error setting availability:', error);
+        console.error('Error updating teacher availability:', error);
         throw error;
     }
-}
+};
 
-export async function deleteAvailability(availabilityId: string) {
+export const deleteTeacherAvailability = async (availabilityId: string) => {
     try {
         await databases.deleteDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.collections.availability,
+            DB_CONFIG.databaseId,
+            DB_CONFIG.collections.TEACHER_AVAILABILITY,
             availabilityId
         );
     } catch (error) {
-        console.error('Error deleting availability:', error);
+        console.error('Error deleting teacher availability:', error);
         throw error;
     }
-}
+};
 
 export function generateTimeSlots(): string[] {
     const slots: string[] = [];

@@ -2,8 +2,7 @@
 <script lang="ts">
     import { scheduleService } from '$lib/services/schedule';
     import { roomService } from '$lib/services/room';
-    import { notificationService } from '$lib/services/notification';
-    import { userStore } from '$lib/stores/userStore';
+    import { userStore } from '$lib/stores/user';
     import type { Schedule, Room } from '$lib/types';
     import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
@@ -36,18 +35,16 @@
         totalTeachers: 0,
         totalStudents: 0,
         totalSchedules: 0,
-        conflictingSchedules: 0,
-        unreadNotifications: 0
+        conflictingSchedules: 0
     };
 
     // Recent items
-    let recentSchedules = [];
-    let recentNotifications = [];
+    let recentSchedules: Schedule[] = [];
 
     onMount(async () => {
         try {
             // Check if user is admin
-            if (!$userStore.user || $userStore.user.role !== 'ADMIN') {
+            if (!$userStore || $userStore.role !== 'ADMIN') {
                 goto('/dashboard');
                 return;
             }
@@ -56,10 +53,7 @@
             await loadStatistics();
             
             // Load recent items
-            await Promise.all([
-                loadRecentSchedules(),
-                loadRecentNotifications()
-            ]);
+            await loadRecentSchedules();
         } catch (err: any) {
             error = err.message || 'Failed to load dashboard data';
             console.error('Error loading dashboard data:', err);
@@ -86,12 +80,6 @@
             stats.conflictingSchedules = schedulesResponse.documents.filter(
                 schedule => schedule.conflictStatus === 'conflict'
             ).length;
-            
-            // Get notification count
-            if ($userStore.user) {
-                const notificationsResponse = await notificationService.getUserNotifications($userStore.user.$id, { isRead: false });
-                stats.unreadNotifications = notificationsResponse.total;
-            }
         } catch (err: any) {
             console.error('Error loading statistics:', err);
         }
@@ -99,21 +87,10 @@
 
     async function loadRecentSchedules() {
         try {
-            const response = await scheduleService.listSchedules({}, 5);
-            recentSchedules = response.documents;
+            const response = await scheduleService.listSchedules();
+            recentSchedules = response.documents.slice(0, 5) as Schedule[];
         } catch (err: any) {
             console.error('Error loading recent schedules:', err);
-        }
-    }
-
-    async function loadRecentNotifications() {
-        try {
-            if ($userStore.user) {
-                const response = await notificationService.getUserNotifications($userStore.user.$id, {}, 5);
-                recentNotifications = response.documents;
-            }
-        } catch (err: any) {
-            console.error('Error loading recent notifications:', err);
         }
     }
 
@@ -123,16 +100,16 @@
 
     async function loadData() {
         loading = true;
-        error = null;
+        error = '';
 
         try {
             const [schedulesData, roomsData] = await Promise.all([
                 scheduleService.listSchedules(),
-                roomService.listRooms()
+                roomService.list()
             ]);
 
-            schedules = schedulesData;
-            rooms = roomsData;
+            schedules = schedulesData.documents as Schedule[];
+            rooms = roomsData.documents as Room[];
 
             // Calculate analytics
             totalSchedules = schedules.length;
@@ -295,26 +272,6 @@
                     View Conflicts
                 </button>
             </div>
-            
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-yellow-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Notifications</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.unreadNotifications}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                    on:click={() => navigateTo('/notifications')}
-                >
-                    View Notifications
-                </button>
-            </div>
         </div>
         
         <!-- Recent Items -->
@@ -361,58 +318,6 @@
                     <div class="mt-4 text-right">
                         <a href="/schedule" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
                             View all schedules →
-                        </a>
-                    </div>
-                {/if}
-            </div>
-            
-            <!-- Recent Notifications -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="mb-4 text-xl font-semibold">Recent Notifications</h2>
-                {#if recentNotifications.length === 0}
-                    <p class="text-gray-500">No recent notifications found.</p>
-                {:else}
-                    <ul class="space-y-4">
-                        {#each recentNotifications as notification}
-                            <li class="p-4 border border-gray-200 rounded-md">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0">
-                                        {#if notification.type === 'error'}
-                                            <span class="inline-flex items-center justify-center w-8 h-8 text-red-500 bg-red-100 rounded-full">
-                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                                </svg>
-                                            </span>
-                                        {:else if notification.type === 'warning'}
-                                            <span class="inline-flex items-center justify-center w-8 h-8 text-yellow-500 bg-yellow-100 rounded-full">
-                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                                </svg>
-                                            </span>
-                                        {:else}
-                                            <span class="inline-flex items-center justify-center w-8 h-8 text-blue-500 bg-blue-100 rounded-full">
-                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                                </svg>
-                                            </span>
-                                        {/if}
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-sm font-medium text-gray-900">{notification.title}</h3>
-                                        <div class="mt-1 text-sm text-gray-500">
-                                            {notification.message}
-                                        </div>
-                                        <div class="mt-2 text-xs text-gray-400">
-                                            {new Date(notification.$createdAt).toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
-                        {/each}
-                    </ul>
-                    <div class="mt-4 text-right">
-                        <a href="/notifications" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                            View all notifications →
                         </a>
                     </div>
                 {/if}

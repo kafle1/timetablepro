@@ -1,21 +1,10 @@
 import { writable, get } from 'svelte/store';
 import { databases } from '$lib/config/appwrite';
-import { appwriteConfig } from '$lib/config/appwrite';
+import { DB_CONFIG } from '$lib/config/appwrite';
+import { ID, Query } from 'appwrite';
 import type { Models } from 'appwrite';
-import { Query } from 'appwrite';
-import { createScheduleNotification } from '$lib/services/notification';
+import type { Schedule } from '$lib/types';
 import { authStore } from './auth';
-
-export interface Schedule extends Models.Document {
-    class: string;
-    subject: string;
-    teacher_id: string;
-    room_id: string;
-    start_time: string;
-    end_time: string;
-    is_recurring: boolean;
-    recurrence_pattern?: string;
-}
 
 interface ScheduleState {
     schedules: Schedule[];
@@ -36,8 +25,8 @@ function createScheduleStore() {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 const response = await databases.listDocuments(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
                     filters
                 );
                 set({ schedules: response.documents as Schedule[], loading: false, error: null });
@@ -54,27 +43,18 @@ function createScheduleStore() {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 const response = await databases.createDocument(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
-                    'unique()',
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
+                    ID.unique(),
                     schedule
                 );
-
-                const currentUser = get(authStore).user;
-                if (currentUser && schedule.teacher_id) {
-                    await createScheduleNotification(
-                        schedule.teacher_id,
-                        response as Schedule,
-                        'created'
-                    );
-                }
 
                 update(state => ({
                     schedules: [...state.schedules, response as Schedule],
                     loading: false,
                     error: null
                 }));
-                return response;
+                return response as Schedule;
             } catch (error) {
                 update(state => ({
                     ...state,
@@ -88,21 +68,11 @@ function createScheduleStore() {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 const response = await databases.updateDocument(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
                     scheduleId,
                     schedule
                 );
-
-                const currentUser = get(authStore).user;
-                const updatedSchedule = response as Schedule;
-                if (currentUser && updatedSchedule.teacher_id) {
-                    await createScheduleNotification(
-                        updatedSchedule.teacher_id,
-                        updatedSchedule,
-                        'updated'
-                    );
-                }
 
                 update(state => ({
                     schedules: state.schedules.map(s => 
@@ -111,7 +81,7 @@ function createScheduleStore() {
                     loading: false,
                     error: null
                 }));
-                return response;
+                return response as Schedule;
             } catch (error) {
                 update(state => ({
                     ...state,
@@ -123,22 +93,10 @@ function createScheduleStore() {
         },
         deleteSchedule: async (scheduleId: string) => {
             try {
-                const currentState = get(scheduleStore);
-                const schedule = currentState.schedules.find(s => s.$id === scheduleId);
-                const currentUser = get(authStore).user;
-                
-                if (schedule && currentUser) {
-                    await createScheduleNotification(
-                        schedule.teacher_id,
-                        schedule,
-                        'deleted'
-                    );
-                }
-
                 update(state => ({ ...state, loading: true, error: null }));
                 await databases.deleteDocument(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
                     scheduleId
                 );
 
@@ -147,6 +105,7 @@ function createScheduleStore() {
                     loading: false,
                     error: null
                 }));
+                return true;
             } catch (error) {
                 update(state => ({
                     ...state,
@@ -160,9 +119,9 @@ function createScheduleStore() {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 const response = await databases.listDocuments(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
-                    [Query.equal('teacher_id', teacherId)]
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
+                    [Query.equal('teacherId', teacherId)]
                 );
                 return response.documents as Schedule[];
             } catch (error) {
@@ -178,9 +137,9 @@ function createScheduleStore() {
             try {
                 update(state => ({ ...state, loading: true, error: null }));
                 const response = await databases.listDocuments(
-                    appwriteConfig.databaseId,
-                    appwriteConfig.collections.schedules,
-                    [Query.equal('room_id', roomId)]
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
+                    [Query.equal('roomId', roomId)]
                 );
                 return response.documents as Schedule[];
             } catch (error) {
@@ -189,6 +148,81 @@ function createScheduleStore() {
                     loading: false,
                     error: error instanceof Error ? error.message : 'Failed to fetch room schedules'
                 }));
+                throw error;
+            }
+        },
+        getScheduleById: (scheduleId: string) => {
+            const schedules = get(scheduleStore).schedules;
+            return schedules.find(schedule => schedule.$id === scheduleId);
+        },
+        checkScheduleConflicts: async (schedule: { 
+            dayOfWeek: string; 
+            roomId: string; 
+            teacherId: string; 
+            startTime: string; 
+            endTime: string; 
+            $id?: string;
+        }) => {
+            try {
+                const existingSchedules = await databases.listDocuments(
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
+                    [
+                        Query.equal('dayOfWeek', schedule.dayOfWeek),
+                        Query.equal('roomId', schedule.roomId)
+                    ]
+                );
+                
+                // Check for room conflicts
+                const roomConflicts = (existingSchedules.documents as Schedule[]).filter(existing => {
+                    // Skip if same schedule (for updates)
+                    if (schedule.$id && existing.$id === schedule.$id) return false;
+                    
+                    const newStart = new Date(`1970-01-01T${schedule.startTime}`).getTime();
+                    const newEnd = new Date(`1970-01-01T${schedule.endTime}`).getTime();
+                    const existingStart = new Date(`1970-01-01T${existing.startTime}`).getTime();
+                    const existingEnd = new Date(`1970-01-01T${existing.endTime}`).getTime();
+                    
+                    return (
+                        (newStart >= existingStart && newStart < existingEnd) ||
+                        (newEnd > existingStart && newEnd <= existingEnd) ||
+                        (newStart <= existingStart && newEnd >= existingEnd)
+                    );
+                });
+                
+                // Check for teacher conflicts
+                const teacherSchedules = await databases.listDocuments(
+                    DB_CONFIG.databaseId,
+                    DB_CONFIG.collections.SCHEDULES,
+                    [
+                        Query.equal('dayOfWeek', schedule.dayOfWeek),
+                        Query.equal('teacherId', schedule.teacherId)
+                    ]
+                );
+                
+                const teacherConflicts = (teacherSchedules.documents as Schedule[]).filter(existing => {
+                    // Skip if same schedule (for updates)
+                    if (schedule.$id && existing.$id === schedule.$id) return false;
+                    
+                    const newStart = new Date(`1970-01-01T${schedule.startTime}`).getTime();
+                    const newEnd = new Date(`1970-01-01T${schedule.endTime}`).getTime();
+                    const existingStart = new Date(`1970-01-01T${existing.startTime}`).getTime();
+                    const existingEnd = new Date(`1970-01-01T${existing.endTime}`).getTime();
+                    
+                    return (
+                        (newStart >= existingStart && newStart < existingEnd) ||
+                        (newEnd > existingStart && newEnd <= existingEnd) ||
+                        (newStart <= existingStart && newEnd >= existingEnd)
+                    );
+                });
+                
+                return {
+                    hasConflicts: roomConflicts.length > 0 || teacherConflicts.length > 0,
+                    roomConflicts,
+                    teacherConflicts
+                };
+            } catch (error) {
+                console.error('Error checking schedule conflicts:', error);
                 throw error;
             }
         }

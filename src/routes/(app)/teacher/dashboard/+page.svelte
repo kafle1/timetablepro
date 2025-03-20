@@ -3,8 +3,7 @@
   import { goto } from '$app/navigation';
   import { scheduleService } from '$lib/services/schedule';
   import { teacherAvailabilityService } from '$lib/services/teacher-availability';
-  import { notificationService } from '$lib/services/notification';
-  import { userStore } from '$lib/stores/userStore';
+  import { userStore } from '$lib/stores/user';
   import TeacherAvailabilityForm from '$lib/components/TeacherAvailabilityForm.svelte';
   import type { Schedule, TeacherAvailability } from '$lib/types';
   import { DAYS_OF_WEEK } from '$lib/config/constants';
@@ -17,24 +16,22 @@
   let teacherId = '';
   let teacherSchedules: Schedule[] = [];
   let teacherAvailability: TeacherAvailability[] = [];
-  let unreadNotifications = 0;
   let upcomingSchedules: Schedule[] = [];
   
   onMount(async () => {
     try {
       // Check if user is teacher
-      if (!$userStore.user || $userStore.user.role !== 'TEACHER') {
+      if (!$userStore || $userStore.role !== 'TEACHER') {
         goto('/dashboard');
         return;
       }
       
-      teacherId = $userStore.user.$id;
+      teacherId = $userStore.$id;
       
       // Load teacher data
       await Promise.all([
         loadTeacherSchedules(),
         loadTeacherAvailability(),
-        loadNotificationCount(),
         loadUpcomingSchedules()
       ]);
     } catch (err: any) {
@@ -60,16 +57,6 @@
       teacherAvailability = response.documents as TeacherAvailability[];
     } catch (err: any) {
       console.error('Error loading teacher availability:', err);
-    }
-  }
-  
-  async function loadNotificationCount() {
-    try {
-      if ($userStore.user) {
-        unreadNotifications = await notificationService.getUnreadCount($userStore.user.$id);
-      }
-    } catch (err: any) {
-      console.error('Error loading notification count:', err);
     }
   }
   
@@ -157,12 +144,12 @@
         <div class="flex items-center">
           <div class="p-3 mr-4 text-white bg-yellow-500 rounded-full">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           </div>
           <div>
-            <p class="mb-2 text-sm font-medium text-gray-600">Notifications</p>
-            <p class="text-lg font-semibold text-gray-700">{unreadNotifications}</p>
+            <p class="mb-2 text-sm font-medium text-gray-600">Class Materials</p>
+            <p class="text-lg font-semibold text-gray-700">10</p>
           </div>
         </div>
       </div>
@@ -254,15 +241,15 @@
           {:else}
             <div class="space-y-4">
               {#each upcomingSchedules as schedule}
-                <div class="p-4 border border-gray-200 rounded-md">
-                  <div class="flex justify-between">
+                <div class="p-4 border rounded-lg">
+                  <div class="flex items-center justify-between">
                     <div>
-                      <h3 class="text-lg font-medium text-gray-900">{schedule.className}</h3>
+                      <h3 class="text-lg font-medium">{schedule.className}</h3>
                       <p class="text-sm text-gray-500">{schedule.subject}</p>
                     </div>
                     <div class="text-right">
-                      <p class="text-sm font-medium text-gray-900">{schedule.startTime} - {schedule.endTime}</p>
-                      <p class="text-sm text-gray-500">Room: {schedule.roomId}</p>
+                      <p class="text-sm font-medium">{schedule.startTime} - {schedule.endTime}</p>
+                      <p class="text-sm text-gray-500">Room {schedule.roomId}</p>
                     </div>
                   </div>
                 </div>

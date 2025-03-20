@@ -1,104 +1,123 @@
 <script lang="ts">
-  import { Menu, X } from 'lucide-svelte';
   import { slide } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
+  import { Button } from '$lib/components/ui/button';
+  import { Menu, X, LogOut } from 'lucide-svelte';
+  import { authStore } from '$lib/stores/auth';
 
   export let mainNavigation: Array<{
     title: string;
     href: string;
     icon: any;
-  }>;
+    roles?: string[];
+  }> = [];
 
   export let userNavigation: Array<{
     title: string;
     href: string;
     icon: any;
-  }>;
+    roles?: string[];
+  }> = [];
 
-  export let currentPath: string;
+  export let currentPath: string = '';
 
   let isOpen = false;
+
+  function closeMenu() {
+    isOpen = false;
+  }
 
   function toggleMenu() {
     isOpen = !isOpen;
   }
 
-  function closeMenu() {
-    isOpen = false;
+  function handleLogout() {
+    authStore.logout();
+    closeMenu();
   }
 </script>
 
-<button
-  class="inline-flex items-center justify-center w-10 h-10 text-sm font-medium transition-colors rounded-md lg:hidden hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-  on:click={toggleMenu}
-  aria-label="Toggle menu"
->
-  {#if isOpen}
-    <X class="w-5 h-5" />
-  {:else}
-    <Menu class="w-5 h-5" />
-  {/if}
-</button>
+<div class="relative z-50">
+  <Button 
+    variant="ghost"
+    size="icon"
+    class="lg:hidden"
+    aria-label={isOpen ? 'Close menu' : 'Open menu'}
+    on:click={toggleMenu}
+  >
+    {#if isOpen}
+      <X class="h-6 w-6" />
+    {:else}
+      <Menu class="h-6 w-6" />
+    {/if}
+  </Button>
 
-{#if isOpen}
-  <div class="fixed inset-0 z-50">
-    <button
-      type="button"
-      class="fixed inset-0 w-full h-full bg-background/80 backdrop-blur-sm"
+  {#if isOpen}
+    <!-- Mobile menu backdrop -->
+    <div 
+      class="fixed inset-0 bg-background/80 backdrop-blur-sm"
       on:click={closeMenu}
-      on:keydown={e => e.key === 'Escape' && closeMenu()}
-      aria-label="Close mobile navigation"
-    ></button>
-    <div
-      class="fixed inset-y-0 left-0 w-3/4 max-w-xs shadow-lg bg-card"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Mobile navigation menu"
+      transition:slide={{ duration: 200, easing: quintOut }}
+    />
+
+    <!-- Mobile menu panel -->
+    <div 
+      class="fixed inset-y-0 right-0 w-full max-w-xs bg-card shadow-xl flex flex-col h-full"
+      transition:slide={{ duration: 300, easing: quintOut }}
     >
-      <nav class="flex flex-col h-full" aria-label="Mobile navigation">
-        <div class="p-4 border-b border-border">
-          <span class="text-xl font-semibold">TimeTablePro</span>
-        </div>
-        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <div class="flex items-center justify-between p-4 border-b border-border">
+        <span class="text-lg font-semibold">Menu</span>
+        <Button variant="ghost" size="icon" on:click={closeMenu}>
+          <X class="h-5 w-5" />
+        </Button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        <!-- Main navigation -->
+        <div class="space-y-1 mb-6">
+          <h3 class="px-3 text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+            Main
+          </h3>
           {#each mainNavigation as item}
-            <a
+            <a 
               href={item.href}
-              class={`flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${currentPath === item.href ? 'bg-primary/10' : ''}`}
-              class:text-primary={currentPath === item.href}
-              class:text-muted-foreground={currentPath !== item.href}
-              class:hover:bg-accent={currentPath !== item.href}
-              class:hover:text-accent-foreground={currentPath !== item.href}
-              style="background-color: {currentPath === item.href ? 'rgb(var(--primary) / 0.1)' : 'transparent'}"
+              class="flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors {currentPath === item.href || currentPath.startsWith(item.href + '/') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}"
               on:click={closeMenu}
             >
-              <svelte:component
-                this={item.icon}
-                class="w-5 h-5 mr-3"
-              />
-              {item.title}
-            </a>
-          {/each}
-        </nav>
-        <div class="p-4 space-y-1 border-t border-border">
-          {#each userNavigation as item}
-            <a
-              href={item.href}
-              class={`flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${currentPath === item.href ? 'bg-primary/10' : ''}`}
-              class:text-primary={currentPath === item.href}
-              class:text-muted-foreground={currentPath !== item.href}
-              class:hover:bg-accent={currentPath !== item.href}
-              class:hover:text-accent-foreground={currentPath !== item.href}
-              on:click={closeMenu}
-            >
-              <svelte:component
-                this={item.icon}
-                class="w-5 h-5 mr-3"
-              />
+              <svelte:component this={item.icon} class="h-5 w-5 mr-3" />
               {item.title}
             </a>
           {/each}
         </div>
-      </nav>
+
+        <!-- User navigation -->
+        <div class="space-y-1">
+          <h3 class="px-3 text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+            User
+          </h3>
+          {#each userNavigation as item}
+            <a 
+              href={item.href}
+              class="flex items-center py-2 px-3 rounded-md text-sm font-medium transition-colors {currentPath === item.href || currentPath.startsWith(item.href + '/') ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'}"
+              on:click={closeMenu}
+            >
+              <svelte:component this={item.icon} class="h-5 w-5 mr-3" />
+              {item.title}
+            </a>
+          {/each}
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-border">
+        <Button 
+          variant="outline" 
+          class="w-full justify-start"
+          on:click={handleLogout}
+        >
+          <LogOut class="h-5 w-5 mr-3" />
+          Logout
+        </Button>
+      </div>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>

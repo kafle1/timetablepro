@@ -2,15 +2,17 @@
     import { fade, fly } from 'svelte/transition';
     import { Check, X, AlertCircle, Info, AlertTriangle } from 'lucide-svelte';
     import { cn } from '$lib/utils';
+    import type { ToastType } from "$lib/stores/toastStore";
 
-    export let type: 'success' | 'error' | 'info' | 'warning' = 'info';
+    export let id: string;
+    export let type: ToastType = "info";
     export let message: string;
-    export let duration = 5000;
-    export let onClose: () => void;
+    export let onDismiss: (id: string) => void;
+    export let timeout: number = 0;
 
     const icons = {
         success: Check,
-        error: X,
+        error: AlertCircle,
         info: Info,
         warning: AlertTriangle
     };
@@ -32,9 +34,9 @@
     let timeoutId: number;
 
     $: {
-        if (duration > 0) {
+        if (timeout > 0) {
             clearTimeout(timeoutId);
-            timeoutId = window.setTimeout(onClose, duration);
+            timeoutId = window.setTimeout(() => onDismiss(id), timeout);
         }
     }
 
@@ -43,16 +45,25 @@
     }
 
     function handleMouseLeave() {
-        if (duration > 0) {
-            timeoutId = window.setTimeout(onClose, duration);
+        if (timeout > 0) {
+            timeoutId = window.setTimeout(() => onDismiss(id), timeout);
         }
     }
+
+    function onClose() {
+        onDismiss(id);
+    }
+
+    // Determine the icon based on the toast type
+    $: icon = icons[type] || Info;
+    $: bgClass = variants[type] || variants.info;
+    $: iconClass = iconColors[type] || iconColors.info;
 </script>
 
 <div
     class={cn(
         'pointer-events-auto flex w-full max-w-md rounded-lg shadow-lg',
-        variants[type]
+        bgClass
     )}
     role="alert"
     on:mouseenter={handleMouseEnter}
@@ -63,8 +74,8 @@
     <div class="flex w-0 flex-1 items-center p-4">
         <div class="flex-shrink-0">
             <svelte:component
-                this={icons[type]}
-                class={cn('h-5 w-5', iconColors[type])}
+                this={icon}
+                class={cn('h-5 w-5', iconClass)}
             />
         </div>
         <div class="ml-3 flex-1">

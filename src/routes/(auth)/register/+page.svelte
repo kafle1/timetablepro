@@ -6,7 +6,7 @@
     import { Label } from '$lib/components/ui/label';
     import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
     import { USER_ROLES } from '$lib/config';
-    import { Loader2, AlertCircle, Eye, EyeOff, User } from 'lucide-svelte';
+    import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-svelte';
     import { Alert, AlertDescription } from '$lib/components/ui/alert';
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
@@ -28,41 +28,6 @@
     let passwordError: string | null = null;
     let confirmPasswordError: string | null = null;
     let roleError: string | null = null;
-
-    // Test credentials
-    const testCredentials = {
-        teacher: { 
-            name: 'Test Teacher',
-            email: 'teacher@timetablepro.com', 
-            password: 'Teacher@123',
-            role: USER_ROLES.TEACHER
-        },
-        student: { 
-            name: 'Test Student',
-            email: 'student@timetablepro.com', 
-            password: 'Student@123',
-            role: USER_ROLES.STUDENT
-        }
-    };
-
-    function fillTestCredentials(userType: 'teacher' | 'student') {
-        const credentials = testCredentials[userType];
-        name = credentials.name;
-        email = credentials.email;
-        password = credentials.password;
-        confirmPassword = credentials.password;
-        role = credentials.role;
-        
-        // Clear errors
-        nameError = null;
-        emailError = null;
-        passwordError = null;
-        confirmPasswordError = null;
-        roleError = null;
-        
-        // Update password strength
-        handlePasswordChange();
-    }
 
     // Password strength indicators
     let passwordStrength = 0;
@@ -217,18 +182,6 @@
             loading = false;
         }
     }
-
-    async function handleGoogleSignup() {
-        try {
-            loading = true;
-            error = null;
-            await authService.loginWithGoogle();
-        } catch (err) {
-            console.error('Google sign-up error:', err);
-            error = 'Google sign-up failed. Please try again.';
-            loading = false;
-        }
-    }
 </script>
 
 <div class="flex min-h-screen bg-background">
@@ -256,18 +209,6 @@
                     <AlertDescription>{success}</AlertDescription>
                 </Alert>
             {/if}
-
-            <div class="p-4 mb-6 border rounded-lg shadow-sm border-border/60 bg-muted/30">
-                <p class="mb-3 text-sm font-medium text-muted-foreground">Test Accounts</p>
-                <div class="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('teacher')}>
-                        <User class="h-3 w-3 mr-1.5 opacity-70" /> Teacher
-                    </Button>
-                    <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('student')}>
-                        <User class="h-3 w-3 mr-1.5 opacity-70" /> Student
-                    </Button>
-                </div>
-            </div>
 
             <form on:submit|preventDefault={handleSubmit} class="space-y-5">
                 <div class="space-y-2">
@@ -412,26 +353,6 @@
                     {/if}
                 </Button>
             </form>
-
-            <div class="relative my-6">
-                <div class="absolute inset-0 flex items-center">
-                    <span class="w-full border-t border-border/60" />
-                </div>
-                <div class="relative flex justify-center text-xs uppercase">
-                    <span class="px-2 bg-background text-muted-foreground">Or continue with</span>
-                </div>
-            </div>
-
-            <Button variant="outline" type="button" disabled={loading} on:click={handleGoogleSignup} class="w-full h-11">
-                {#if loading}
-                    <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                {:else}
-                    <svg class="w-4 h-4 mr-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-                    </svg>
-                    Google
-                {/if}
-            </Button>
 
             <p class="mt-6 text-sm text-center text-muted-foreground">
                 Already have an account?

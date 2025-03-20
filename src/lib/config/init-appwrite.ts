@@ -80,7 +80,7 @@ async function initializeAppwrite() {
                 databaseId,
                 usersCollectionId,
                 'email_idx',
-                'key',
+                'key' as any,
                 ['email']
             );
 

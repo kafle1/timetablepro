@@ -1,4 +1,4 @@
-import { Calendar as CalendarPrimitive } from '@internationalized/date';
+import type { Calendar as CalendarPrimitive } from '@internationalized/date';
 import Root from './calendar.svelte';
 
 export {

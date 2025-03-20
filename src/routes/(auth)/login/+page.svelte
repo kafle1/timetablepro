@@ -11,7 +11,8 @@
     import { goto } from '$app/navigation';
     import { ROUTES } from '$lib/config';
     import { onMount } from 'svelte';
-    import { userStore } from '$lib/stores/userStore';
+    import { userStore } from '$lib/stores/user';
+    import { authStore } from '$lib/stores/auth';
     import type { User } from '$lib/types';
 
     let email = '';
@@ -93,27 +94,23 @@
             success = null;
             loading = true;
 
-            // For UI testing, don't actually log in or redirect
-            setTimeout(() => {
-                loading = false;
-                success = "UI testing mode - Login successful. Use the links below to navigate.";
-            }, 1000);
+            // Attempt to login with authStore
+            const user = await authStore.login(email, password, redirectTo);
+            
+            if (rememberMe && email) {
+                localStorage.setItem('rememberedEmail', email);
+            } else {
+                localStorage.removeItem('rememberedEmail');
+            }
+            
+            // Redirect based on user role
+            if (user) {
+                const dashboardRoute = authStore.getDashboardRoute(user.role);
+                goto(dashboardRoute);
+            }
         } catch (err: any) {
             console.error('Login error:', err);
             error = err.message || 'Login failed. Please try again.';
-            loading = false;
-        }
-    }
-
-    async function handleGoogleLogin() {
-        try {
-            loading = true;
-            error = null;
-            success = null;
-            await authService.loginWithGoogle();
-        } catch (err) {
-            console.error('Google login error:', err);
-            error = 'Google login failed. Please try again.';
             loading = false;
         }
     }
@@ -162,21 +159,6 @@
                     </Alert>
                 </div>
             {/if}
-
-            <div class="p-4 mb-6 border rounded-lg shadow-sm border-border/60 bg-muted/30">
-                <p class="mb-3 text-sm font-medium text-muted-foreground">Test Accounts</p>
-                <div class="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('admin')}>
-                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Admin
-                    </Button>
-                    <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('teacher')}>
-                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Teacher
-                    </Button>
-                    <Button variant="outline" size="sm" class="h-8 text-xs bg-background hover:bg-muted" on:click={() => fillTestCredentials('student')}>
-                        <UserIcon class="h-3 w-3 mr-1.5 opacity-70" /> Student
-                    </Button>
-                </div>
-            </div>
 
             <form on:submit|preventDefault={handleSubmit} class="space-y-5">
                 <div class="space-y-2">
@@ -250,55 +232,7 @@
                         {/if}
                     </Button>
                 </div>
-                
-                <!-- UI Testing Navigation Links -->
-                <div class="mt-8 p-4 border rounded-lg bg-muted/30">
-                    <h3 class="text-sm font-medium mb-3">UI Testing Navigation</h3>
-                    <div class="space-y-2">
-                        <div>
-                            <a href="/admin/dashboard" class="text-primary hover:underline text-sm">Admin Dashboard</a>
-                        </div>
-                        <div>
-                            <a href="/teacher/dashboard" class="text-primary hover:underline text-sm">Teacher Dashboard</a>
-                        </div>
-                        <div>
-                            <a href="/student/dashboard" class="text-primary hover:underline text-sm">Student Dashboard</a>
-                        </div>
-                        <div>
-                            <a href="/rooms" class="text-primary hover:underline text-sm">Rooms</a>
-                        </div>
-                        <div>
-                            <a href="/schedules" class="text-primary hover:underline text-sm">Schedules</a>
-                        </div>
-                        <div>
-                            <a href="/profile" class="text-primary hover:underline text-sm">Profile</a>
-                        </div>
-                        <div>
-                            <a href="/settings" class="text-primary hover:underline text-sm">Settings</a>
-                        </div>
-                    </div>
-                </div>
             </form>
-
-            <div class="relative my-6">
-                <div class="absolute inset-0 flex items-center">
-                    <span class="w-full border-t border-border/60"></span>
-                </div>
-                <div class="relative flex justify-center text-xs uppercase">
-                    <span class="px-2 bg-background text-muted-foreground">Or continue with</span>
-                </div>
-            </div>
-
-            <Button variant="outline" type="button" disabled={loading} on:click={handleGoogleLogin} class="w-full h-11">
-                {#if loading}
-                    <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                {:else}
-                    <svg class="w-4 h-4 mr-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-                    </svg>
-                    Google
-                {/if}
-            </Button>
 
             <p class="mt-6 text-sm text-center text-muted-foreground">
                 New to TimetablePro?

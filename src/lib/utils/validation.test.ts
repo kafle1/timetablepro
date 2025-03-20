@@ -144,7 +144,7 @@ describe('Validation Utilities', () => {
         });
 
         it('should return no errors for valid schedule', () => {
-            const schedule: Schedule = {
+            const schedule = {
                 id: '1',
                 roomId: '1',
                 teacherId: '1',
@@ -154,8 +154,16 @@ describe('Validation Utilities', () => {
                 dayOfWeek: 'monday',
                 recurrence: 'weekly',
                 createdAt: '',
-                updatedAt: ''
-            };
+                updatedAt: '',
+                className: 'Math 101',
+                duration: 60,
+                $id: '1',
+                $collectionId: 'schedules',
+                $databaseId: 'database',
+                $createdAt: '',
+                $updatedAt: '',
+                $permissions: []
+            } as unknown as Partial<Schedule>;
             const errors = validateSchedule(schedule);
             expect(Object.values(errors).every(arr => !arr || arr.length === 0)).toBe(true);
         });
@@ -197,17 +205,24 @@ describe('Validation Utilities', () => {
         });
 
         it('should return no errors for valid room', () => {
-            const room: Room = {
+            const room = {
                 id: '1',
-                name: 'Room 101',
                 capacity: 30,
                 building: 'Main Building',
                 floor: 1,
                 features: ['projector', 'whiteboard'],
                 isActive: true,
                 createdAt: '',
-                updatedAt: ''
-            };
+                updatedAt: '',
+                roomName: 'Room 101',
+                name: 'Room 101',
+                $id: '1',
+                $collectionId: 'rooms',
+                $databaseId: 'database',
+                $createdAt: '',
+                $updatedAt: '',
+                $permissions: []
+            } as unknown as Partial<Room>;
             const errors = validateRoom(room);
             expect(Object.values(errors).every(arr => !arr || arr.length === 0)).toBe(true);
         });
@@ -252,7 +267,7 @@ describe('Validation Utilities', () => {
         });
 
         it('should return no errors for valid availability', () => {
-            const availability: TeacherAvailability = {
+            const availability = {
                 id: '1',
                 teacherId: '1',
                 dayOfWeek: 'monday',
@@ -260,8 +275,15 @@ describe('Validation Utilities', () => {
                 endTime: '2024-03-20T10:00:00',
                 isRecurring: true,
                 createdAt: '',
-                updatedAt: ''
-            };
+                updatedAt: '',
+                isAvailable: true,
+                $id: '1',
+                $collectionId: 'teacher_availability',
+                $databaseId: 'database',
+                $createdAt: '',
+                $updatedAt: '',
+                $permissions: []
+            } as unknown as Partial<TeacherAvailability>;
             const errors = validateTeacherAvailability(availability);
             expect(Object.values(errors).every(arr => !arr || arr.length === 0)).toBe(true);
         });
@@ -298,21 +320,29 @@ describe('Validation Utilities', () => {
         });
 
         it('should return no errors for valid user', () => {
-            const user: User = {
+            const user = {
                 id: '1',
                 email: 'test@example.com',
                 name: 'John Doe',
                 role: 'TEACHER',
                 createdAt: '',
-                updatedAt: ''
-            };
+                updatedAt: '',
+                userId: '1',
+                isActive: true,
+                $id: '1',
+                $collectionId: 'users',
+                $databaseId: 'database',
+                $createdAt: '',
+                $updatedAt: '',
+                $permissions: []
+            } as unknown as Partial<User>;
             const errors = validateUser(user);
             expect(Object.values(errors).every(arr => !arr || arr.length === 0)).toBe(true);
         });
     });
 
     describe('validateScheduleConflict', () => {
-        const existingSchedules: Schedule[] = [{
+        const existingSchedules = [{
             id: '1',
             roomId: '1',
             teacherId: '1',
@@ -322,8 +352,16 @@ describe('Validation Utilities', () => {
             dayOfWeek: 'monday',
             recurrence: 'weekly',
             createdAt: '',
-            updatedAt: ''
-        }];
+            updatedAt: '',
+            className: 'Math 101',
+            duration: 60,
+            $id: '1',
+            $collectionId: 'schedules',
+            $databaseId: 'database',
+            $createdAt: '',
+            $updatedAt: '',
+            $permissions: []
+        }] as unknown as Schedule[];
 
         it('should throw error for missing times', () => {
             expect(() => validateScheduleConflict({}, [])).toThrow(AppError);

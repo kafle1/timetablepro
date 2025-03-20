@@ -13,5 +13,5 @@ export {
     Content as DropdownMenuContent,
     Item as DropdownMenuItem,
     Label as DropdownMenuLabel,
-    Separator as DropdownMenuSeparator,
+    Separator as DropdownMenuSeparator
 }; 
