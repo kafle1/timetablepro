@@ -1,7 +1,7 @@
 <!-- src/routes/(app)/student/dashboard/+page.svelte -->
 <script lang="ts">
     import { scheduleService } from '$lib/services/schedule';
-    import { userStore } from '$lib/stores/userStore';
+    import { userStore } from '$lib/stores/user';
     import type { Schedule } from '$lib/types';
     import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
@@ -26,7 +26,7 @@
     onMount(async () => {
         const user = $userStore;
         if (user) {
-            await loadData(user.userId);
+            await loadData(user.$id);
         }
     });
 
@@ -36,7 +36,8 @@
 
         try {
             // Load student's schedules
-            schedules = await scheduleService.listSchedules({ studentId: userId });
+            const response = await scheduleService.listSchedules({ teacherId: userId });
+            schedules = response.documents as Schedule[];
 
             // Calculate analytics
             totalClasses = schedules.length;
@@ -97,6 +98,9 @@
 
     function getUpcomingClasses(): Schedule[] {
         const now = new Date();
+        if (!Array.isArray(schedules)) {
+            return [];
+        }
         return schedules
             .filter(s => new Date(s.startTime) > now)
             .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -152,19 +156,25 @@
     <Card class="p-6">
         <h2 class="text-xl font-semibold mb-4">Upcoming Classes</h2>
         <div class="space-y-4">
-            {#each getUpcomingClasses() as schedule}
-                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div>
-                        <h3 class="font-medium">{schedule.className}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {formatDateTime(schedule.startTime)}
-                        </p>
+            {#if Array.isArray(schedules) && getUpcomingClasses().length > 0}
+                {#each getUpcomingClasses() as schedule}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div>
+                            <h3 class="font-medium">{schedule.className}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {formatDateTime(schedule.startTime)}
+                            </p>
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            {schedule.duration} minutes
+                        </div>
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                        {schedule.duration} minutes
-                    </div>
+                {/each}
+            {:else}
+                <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No upcoming classes found
                 </div>
-            {/each}
+            {/if}
         </div>
     </Card>
 
@@ -178,8 +188,8 @@
         <TabsContent value="calendar">
             <Card class="p-6">
                 <ScheduleCalendar
-                    userId={$userStore?.userId}
-                    {onScheduleClick}
+                    schedules={schedules}
+                    onEdit={(schedule) => handleScheduleClick(schedule)}
                 />
             </Card>
         </TabsContent>
@@ -187,24 +197,30 @@
         <TabsContent value="list">
             <Card class="p-6">
                 <div class="space-y-4">
-                    {#each schedules.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()) as schedule}
-                        <Card
-                            class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                            on:click={() => handleScheduleClick(schedule)}
-                        >
-                            <div class="flex items-start justify-between">
-                                <div>
-                                    <h3 class="font-medium">{schedule.className}</h3>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                                        {formatDateTime(schedule.startTime)}
-                                    </p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                                        Duration: {schedule.duration} minutes
-                                    </p>
+                    {#if Array.isArray(schedules) && schedules.length > 0}
+                        {#each schedules.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()) as schedule}
+                            <Card
+                                class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                on:click={() => handleScheduleClick(schedule)}
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <h3 class="font-medium">{schedule.className}</h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            {formatDateTime(schedule.startTime)}
+                                        </p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                                            Duration: {schedule.duration} minutes
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </Card>
-                    {/each}
+                            </Card>
+                        {/each}
+                    {:else}
+                        <div class="p-4 text-center text-gray-500">
+                            No schedules found
+                        </div>
+                    {/if}
                 </div>
             </Card>
         </TabsContent>

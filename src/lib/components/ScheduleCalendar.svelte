@@ -13,7 +13,7 @@
     import { roomService } from '$lib/services/room';
     import { authService } from '$lib/services/auth';
     import { USER_ROLES } from '$lib/config/constants';
-    import { userStore } from '$lib/stores/userStore';
+    import { userStore } from '$lib/stores/user';
 
     // Props
     export let schedules: Schedule[] = [];

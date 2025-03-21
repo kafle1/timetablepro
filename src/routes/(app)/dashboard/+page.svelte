@@ -228,11 +228,17 @@
                     new Promise(resolve => setTimeout(resolve, 500))
                 ]);
                 
-                const schedules = get(scheduleStore).schedules || [];
-                const rooms = get(roomStore).rooms || [];
-                const teachers = get(teacherStore).teachers || [];
+                const storeData = get(scheduleStore);
+                const schedules = Array.isArray(storeData.schedules) ? storeData.schedules : [];
                 
-                const conflicts = schedules.filter((schedule: Schedule) => schedule.conflictStatus === 'conflict');
+                const roomData = get(roomStore);
+                const rooms = Array.isArray(roomData.rooms) ? roomData.rooms : [];
+                
+                const teacherData = get(teacherStore);
+                const teachers = Array.isArray(teacherData.teachers) ? teacherData.teachers : [];
+                
+                const conflicts = Array.isArray(schedules) ? 
+                    schedules.filter((schedule: Schedule) => schedule.conflictStatus === 'conflict') : [];
                 
                 stats = {
                     ...stats,
@@ -247,7 +253,7 @@
                 
                 stats = {
                     ...stats,
-                    totalSchedules: schedules.length
+                    totalSchedules: Array.isArray(schedules) ? schedules.length : 0
                 };
             } else {
                 // For student, get class stats
@@ -256,16 +262,18 @@
                 // Wait for store to update
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                const schedules = get(scheduleStore).schedules || [];
+                const storeData = get(scheduleStore);
+                const schedules = Array.isArray(storeData.schedules) ? storeData.schedules : [];
                 
                 // Get today's schedules
                 const today = new Date();
-                const todaySchedules = schedules.filter((schedule: Schedule) => {
-                    // Convert schedule date to comparable format
-                    const scheduleDay = schedule.dayOfWeek.toLowerCase();
-                    const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                    return scheduleDay === currentDay;
-                });
+                const todaySchedules = Array.isArray(schedules) ? 
+                    schedules.filter((schedule: Schedule) => {
+                        // Convert schedule date to comparable format
+                        const scheduleDay = schedule.dayOfWeek.toLowerCase();
+                        const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                        return scheduleDay === currentDay;
+                    }) : [];
                 
                 stats = {
                     ...stats,

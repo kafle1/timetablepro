@@ -433,6 +433,98 @@ class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Get all users
+   */
+  async getUsers(): Promise<User[]> {
+    try {
+      // In a real implementation, we would fetch from the database
+      // For demo, we'll return a mock list of users
+      return [
+        {
+          $id: 'admin-1',
+          userId: 'admin-1',
+          email: 'admin@timetablepro.com',
+          name: 'Admin User',
+          role: 'ADMIN',
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          $collectionId: 'users',
+          $databaseId: 'timetablepro',
+          $createdAt: new Date().toISOString(),
+          $updatedAt: new Date().toISOString(),
+          $permissions: []
+        },
+        {
+          $id: 'teacher-1',
+          userId: 'teacher-1',
+          email: 'teacher@timetablepro.com',
+          name: 'Teacher User',
+          role: 'TEACHER',
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          $collectionId: 'users',
+          $databaseId: 'timetablepro',
+          $createdAt: new Date().toISOString(),
+          $updatedAt: new Date().toISOString(),
+          $permissions: []
+        },
+        {
+          $id: 'student-1',
+          userId: 'student-1',
+          email: 'student@timetablepro.com',
+          name: 'Student User',
+          role: 'STUDENT',
+          isActive: true,
+          emailVerified: true,
+          preferences: {},
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+          $collectionId: 'users',
+          $databaseId: 'timetablepro',
+          $createdAt: new Date().toISOString(),
+          $updatedAt: new Date().toISOString(),
+          $permissions: []
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get teachers
+   */
+  async getTeachers(): Promise<User[]> {
+    try {
+      const allUsers = await this.getUsers();
+      return allUsers.filter(user => user.role === 'TEACHER');
+    } catch (error) {
+      console.error('Error getting teachers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get students
+   */
+  async getStudents(): Promise<User[]> {
+    try {
+      const allUsers = await this.getUsers();
+      return allUsers.filter(user => user.role === 'STUDENT');
+    } catch (error) {
+      console.error('Error getting students:', error);
+      throw error;
+    }
+  }
 }
 
 export const authService = AuthService.getInstance(); 

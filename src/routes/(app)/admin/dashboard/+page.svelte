@@ -70,15 +70,16 @@
             
             // Get user counts
             const usersResponse = await authService.getUsers();
-            const users = usersResponse;
-            stats.totalTeachers = users.filter(user => user.role === 'TEACHER').length;
-            stats.totalStudents = users.filter(user => user.role === 'STUDENT').length;
+            const users = Array.isArray(usersResponse) ? usersResponse : [];
+            stats.totalTeachers = users.filter((user: any) => user.role === 'TEACHER').length;
+            stats.totalStudents = users.filter((user: any) => user.role === 'STUDENT').length;
             
             // Get schedule counts
             const schedulesResponse = await scheduleService.listSchedules();
             stats.totalSchedules = schedulesResponse.total;
-            stats.conflictingSchedules = schedulesResponse.documents.filter(
-                schedule => schedule.conflictStatus === 'conflict'
+            const documents = Array.isArray(schedulesResponse.documents) ? schedulesResponse.documents : [];
+            stats.conflictingSchedules = documents.filter(
+                (schedule: any) => schedule.conflictStatus === 'conflict'
             ).length;
         } catch (err: any) {
             console.error('Error loading statistics:', err);
@@ -88,7 +89,8 @@
     async function loadRecentSchedules() {
         try {
             const response = await scheduleService.listSchedules();
-            recentSchedules = response.documents.slice(0, 5) as Schedule[];
+            const documents = Array.isArray(response.documents) ? response.documents : [];
+            recentSchedules = documents.slice(0, 5) as Schedule[];
         } catch (err: any) {
             console.error('Error loading recent schedules:', err);
         }
@@ -108,21 +110,25 @@
                 roomService.list()
             ]);
 
-            schedules = schedulesData.documents as Schedule[];
-            rooms = roomsData.documents as Room[];
+            schedules = Array.isArray(schedulesData.documents) ? 
+                schedulesData.documents as Schedule[] : [];
+            rooms = Array.isArray(roomsData.documents) ? 
+                roomsData.documents as Room[] : [];
 
             // Calculate analytics
             totalSchedules = schedules.length;
             totalRooms = rooms.length;
-            conflictCount = schedules.filter(s => s.conflictStatus === 'conflict').length;
+            conflictCount = Array.isArray(schedules) ? 
+                schedules.filter(s => s.conflictStatus === 'conflict').length : 0;
 
             // Calculate room utilization
-            roomUtilization = rooms.reduce((acc, room) => {
-                const roomSchedules = schedules.filter(s => s.roomId === room.$id);
+            roomUtilization = Array.isArray(rooms) ? rooms.reduce((acc, room) => {
+                const roomSchedules = Array.isArray(schedules) ? 
+                    schedules.filter(s => s.roomId === room.$id) : [];
                 const totalMinutes = roomSchedules.reduce((sum, s) => sum + s.duration, 0);
                 acc[room.$id] = Math.round((totalMinutes / (24 * 60)) * 100);
                 return acc;
-            }, {} as Record<string, number>);
+            }, {} as Record<string, number>) : {};
         } catch (err) {
             error = 'Failed to load dashboard data';
             console.error('Error loading dashboard data:', err);
