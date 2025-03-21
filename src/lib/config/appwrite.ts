@@ -16,12 +16,8 @@ const createClient = () => {
         client.setEndpoint(endpoint);
         client.setProject(projectId);
         
-        // Set the correct locale for browser environments
         if (browser) {
             client.setLocale('en-US');
-            
-            // Note: For better security, consider using a custom domain
-            // to enable cookie-based sessions instead of localStorage
         }
         
         return client;

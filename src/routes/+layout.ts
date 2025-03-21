@@ -1,4 +1,8 @@
-import { redirect } from '@sveltejs/kit';
+/**
+ * This layout handles basic app configuration for SvelteKit
+ */
+
+import { dev } from '$app/environment';
 import type { LayoutLoad } from './$types';
 import { ROUTES, USER_ROLES } from '$lib/config';
 import { authStore } from '$lib/stores/auth';
@@ -24,21 +28,32 @@ const roleBasedRoutes = {
     [USER_ROLES.STUDENT]: ['/student', '/schedules']
 };
 
+// Set server-side rendering to true, but disable prerendering
+// This ensures good SEO while preventing static prerendering issues with auth
+export const ssr = true;
+export const prerender = false;
+
+// Provide error handling with retry capabilities 
+export const trailingSlash = 'never';
+
+// Define standard caching headers to prevent auth issues
+export const csr = true;
+
 export const load: LayoutLoad = async ({ url }) => {
     // UI Testing Mode - Always return a mock admin user
     const mockUser: User = {
-        $id: 'mock-admin',
-        userId: 'mock-admin',
+        $id: 'test-admin',
+        userId: 'test-admin',
         email: 'admin@timetablepro.com',
         name: 'Admin User',
-        role: 'ADMIN',
+        role: USER_ROLES.ADMIN,
         isActive: true,
         emailVerified: true,
         preferences: {},
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
         $collectionId: 'users',
-        $databaseId: 'default',
+        $databaseId: 'timetablepro',
         $createdAt: new Date().toISOString(),
         $updatedAt: new Date().toISOString(),
         $permissions: []

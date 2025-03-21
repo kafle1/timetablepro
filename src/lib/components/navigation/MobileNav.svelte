@@ -3,7 +3,9 @@
   import { quintOut } from 'svelte/easing';
   import { Button } from '$lib/components/ui/button';
   import { Menu, X, LogOut } from 'lucide-svelte';
-  import { authStore } from '$lib/stores/auth';
+  import { authService } from '$lib/services/auth';
+  import { userStore } from '$lib/stores/user';
+  import { goto } from '$app/navigation';
 
   export let mainNavigation: Array<{
     title: string;
@@ -31,9 +33,20 @@
     isOpen = !isOpen;
   }
 
-  function handleLogout() {
-    authStore.logout();
-    closeMenu();
+  async function handleLogout() {
+    try {
+      // Call the auth service logout method
+      await authService.logout();
+      
+      // Reset the user store
+      userStore.set(null);
+      
+      // Redirect to login page
+      closeMenu();
+      goto('/login?success=logout');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   }
 </script>
 

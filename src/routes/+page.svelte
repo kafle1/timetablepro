@@ -7,51 +7,64 @@
   import { Badge } from '$lib/components/ui/badge';
   import { userStore } from '$lib/stores/user';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { USER_ROLES, ROUTES } from '$lib/config';
-  import { authStore } from '$lib/stores/auth';
   import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '$lib/components/ui/dropdown-menu';
   import { browser } from '$app/environment';
 
   // Auth status tracking
   let isAuthenticated = false;
   let currentUser: any = null;
+  let unsubscribe: () => void;
 
   // Check authentication status and redirect if needed
   onMount(async () => {
     try {
       // Check if user is already logged in
-      const user = await authStore.checkSession();
-      if (user) {
-        isAuthenticated = true;
-        currentUser = user;
-        console.log('User authenticated:', user.email, user.role);
-        
-        // Check if we're on the homepage after login (via URL parameter)
-        if (browser && window.location.search.includes('redirect_to_dashboard=true')) {
-          // Remove the parameter from URL
-          const url = new URL(window.location.href);
-          url.searchParams.delete('redirect_to_dashboard');
-          window.history.replaceState({}, '', url.toString());
-          
-          // Redirect to appropriate dashboard
-          const dashboardRoute = getDashboardRoute(user.role);
-          console.log('Redirecting to dashboard:', dashboardRoute);
-          goto(dashboardRoute);
+      await userStore.init();
+      
+      // Subscribe to the store safely
+      unsubscribe = userStore.subscribe(user => {
+        if (user) {
+          isAuthenticated = true;
+          currentUser = user;
+          console.log('User authenticated:', user.email, user.role);
+        } else {
+          isAuthenticated = false;
+          currentUser = null;
         }
+      });
+      
+      // Redirect if needed (after we've set up the subscription)
+      if (browser && $userStore && window.location.search.includes('redirect_to_dashboard=true')) {
+        // Remove the parameter from URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('redirect_to_dashboard');
+        window.history.replaceState({}, '', url.toString());
+        
+        // Redirect to appropriate dashboard
+        const dashboardRoute = getDashboardRoute($userStore.role);
+        console.log('Redirecting to dashboard:', dashboardRoute);
+        goto(dashboardRoute);
       }
     } catch (err) {
       console.error('Error checking authentication:', err);
     }
   });
 
+  // Clean up subscription when component is destroyed
+  onDestroy(() => {
+    if (unsubscribe) unsubscribe();
+  });
+
   // Handle logout
   function handleLogout() {
-    authStore.logout();
+    userStore.reset();
+    goto(ROUTES.LOGIN);
   }
 
   // Get dashboard route based on user role
-  function getDashboardRoute(role: string): string {
+  function getDashboardRoute(role: string | undefined): string {
     if (!role) return ROUTES.LOGIN;
     
     switch (role) {
@@ -142,6 +155,54 @@
     { value: '10k+', label: 'Educational institutions worldwide' },
     { value: '99.9%', label: 'System uptime' }
   ];
+
+  // Navigation for authenticated users
+  const mainNavigation = [
+    {
+      title: 'Dashboard',
+      href: '/dashboard',
+      icon: Home,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    },
+    {
+      title: 'Schedule',
+      href: '/schedule',
+      icon: Calendar,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    }
+  ];
+  
+  const userNavigation = [
+    {
+      title: 'Profile',
+      href: ROUTES.PROFILE,
+      icon: UserCircle,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    },
+    {
+      title: 'Settings',
+      href: ROUTES.SETTINGS,
+      icon: Settings,
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+    }
+  ];
+
+  // Use safer reactive declarations with null checks
+  $: filteredMainNavigation = Array.isArray(mainNavigation) 
+    ? mainNavigation.filter(item => 
+        currentUser?.role && 
+        Array.isArray(item.roles) && 
+        item.roles.includes(currentUser.role as "ADMIN" | "TEACHER" | "STUDENT")
+      ) 
+    : [];
+
+  $: filteredUserNavigation = Array.isArray(userNavigation)
+    ? userNavigation.filter(item => 
+        currentUser?.role && 
+        Array.isArray(item.roles) && 
+        item.roles.includes(currentUser.role as "ADMIN" | "TEACHER" | "STUDENT")
+      )
+    : [];
 </script>
 
 <div class="flex flex-col min-h-screen bg-gradient-to-b from-primary-50 to-white">

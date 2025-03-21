@@ -1,6 +1,6 @@
 <!-- src/routes/(auth)/register/+page.svelte -->
 <script lang="ts">
-    import { authService } from '$lib/services/auth';
+    import { authStore } from '$lib/stores/auth';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
@@ -10,6 +10,7 @@
     import { Alert, AlertDescription } from '$lib/components/ui/alert';
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
+    import { ROUTES } from '$lib/config';
 
     let name = '';
     let email = '';
@@ -32,6 +33,9 @@
     // Password strength indicators
     let passwordStrength = 0;
     let passwordFeedback = '';
+
+    // Get redirect URL if passed
+    let redirectTo = $page.url.searchParams.get('redirect') || '';
 
     // Basic email validation
     function isValidEmail(email: string): boolean {
@@ -105,13 +109,15 @@
         }
         
         // Validate password
-        const passwordValidation = validatePassword(password);
         if (!password) {
             passwordError = 'Password is required';
             isValid = false;
-        } else if (!passwordValidation.valid) {
-            passwordError = passwordValidation.feedback;
-            isValid = false;
+        } else {
+            const passwordValidation = validatePassword(password);
+            if (!passwordValidation.valid) {
+                passwordError = passwordValidation.feedback;
+                isValid = false;
+            }
         }
         
         // Validate confirm password
@@ -132,246 +138,241 @@
         return isValid;
     }
 
-    function handlePasswordChange() {
-        const { valid, feedback, strength } = validatePassword(password);
-        passwordStrength = strength;
-        passwordFeedback = feedback;
+    // Register the user
+    async function handleRegister() {
+        // Clear any existing errors
+        error = null;
         
-        // Also check confirm password match if it's already entered
-        if (confirmPassword && password !== confirmPassword) {
-            confirmPasswordError = 'Passwords do not match';
-        } else {
-            confirmPasswordError = null;
+        // Validate the form
+        if (!validateForm()) {
+            return;
+        }
+        
+        loading = true;
+        
+        try {
+            await authStore.register(email, password, name, role as keyof typeof USER_ROLES);
+            
+            // Registration successful, redirect to login
+            const loginUrl = new URL(ROUTES.LOGIN, window.location.origin);
+            loginUrl.searchParams.set('from', 'register');
+            
+            // Carry forward the redirect parameter if it exists
+            if (redirectTo) {
+                loginUrl.searchParams.set('redirect', redirectTo);
+            }
+            
+            goto(loginUrl.toString());
+        } catch (err: any) {
+            error = err.message || 'Registration failed. Please try again.';
+            loading = false;
         }
     }
 
+    // Toggle password visibility
     function togglePasswordVisibility() {
         showPassword = !showPassword;
     }
 
+    // Toggle confirm password visibility
     function toggleConfirmPasswordVisibility() {
         showConfirmPassword = !showConfirmPassword;
     }
 
-    async function handleSubmit() {
-        try {
-            error = null;
-            
-            // Validate inputs
-            if (!validateForm()) {
-                return;
-            }
-
-            loading = true;
-            await authService.register(email, password, name, role as keyof typeof USER_ROLES);
-            
-            // UI Testing Mode - No Redirection
-            loading = false;
-            success = 'Registration successful! UI Testing Mode - No Redirection';
-        } catch (err: any) {
-            console.error('Registration error:', err);
-            if (err.code === 409) {
-                error = 'An account with this email already exists';
-                emailError = 'This email is already registered';
-            } else if (err.message) {
-                error = err.message;
-            } else {
-                error = 'Registration failed. Please try again.';
-            }
-        } finally {
-            loading = false;
+    // Update password strength when password changes
+    $: {
+        if (password) {
+            const validation = validatePassword(password);
+            passwordStrength = validation.strength;
+            passwordFeedback = validation.feedback;
+        } else {
+            passwordStrength = 0;
+            passwordFeedback = '';
         }
+    }
+
+    // Navigate to login page
+    function goToLogin() {
+        const url = new URL(ROUTES.LOGIN, window.location.origin);
+        
+        // Carry forward the redirect parameter if it exists
+        if (redirectTo) {
+            url.searchParams.set('redirect', redirectTo);
+        }
+        
+        goto(url.toString());
     }
 </script>
 
-<div class="flex min-h-screen bg-background">
-    <!-- Left side - Form -->
-    <div class="flex flex-col justify-center flex-1 max-w-md px-4 py-12 mx-auto sm:px-6 lg:flex-none lg:px-12 xl:px-16">
-        <div class="w-full">
-            <div class="mb-8 text-center">
-                <h1 class="text-3xl font-bold tracking-tight">
-                    <a href="/" class="flex items-center justify-center">
-                        <span class="font-bold text-primary">Timetable</span><span class="font-bold">Pro</span>
-                    </a>
-                </h1>
-                <p class="mt-2 text-sm text-muted-foreground">Create your account</p>
-            </div>
-
-            {#if error}
-                <Alert variant="destructive" class="mb-4">
-                    <AlertCircle class="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            {/if}
-
-            {#if success}
-                <Alert variant="default" class="mb-4 bg-green-50 text-green-800 border-green-200">
-                    <AlertDescription>{success}</AlertDescription>
-                </Alert>
-            {/if}
-
-            <form on:submit|preventDefault={handleSubmit} class="space-y-5">
-                <div class="space-y-2">
-                    <Label for="name" class="text-sm font-medium">Full Name</Label>
-                    <div class="relative">
-                        <Input
-                            id="name"
-                            placeholder="John Doe"
-                            type="text"
-                            bind:value={name}
-                            autocomplete="name"
-                            disabled={loading}
-                            class={nameError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!nameError}
-                        />
-                    </div>
+<div class="container mx-auto flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
+        <div class="text-center">
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Create an account</h1>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Sign up to get started with TimetablePro
+            </p>
+        </div>
+        
+        {#if error}
+            <Alert variant="destructive" class="mb-4">
+                <AlertCircle class="h-4 w-4" />
+                <AlertDescription>
+                    {error}
+                </AlertDescription>
+            </Alert>
+        {/if}
+        
+        <form on:submit|preventDefault={handleRegister} class="mt-8 space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <Label for="name" class="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</Label>
+                    <Input 
+                        id="name" 
+                        type="text" 
+                        bind:value={name}
+                        placeholder="John Doe" 
+                        required
+                        class={nameError ? "border-red-500" : ""}
+                    />
                     {#if nameError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{nameError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{nameError}</p>
                     {/if}
                 </div>
-
-                <div class="space-y-2">
-                    <Label for="email" class="text-sm font-medium">Email</Label>
-                    <div class="relative">
-                        <Input
-                            id="email"
-                            placeholder="name@example.com"
-                            type="email"
-                            bind:value={email}
-                            autocomplete="email"
-                            disabled={loading}
-                            class={emailError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!emailError}
-                        />
-                    </div>
+                
+                <div>
+                    <Label for="email" class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
+                    <Input 
+                        id="email" 
+                        type="email" 
+                        bind:value={email}
+                        placeholder="name@example.com" 
+                        required
+                        class={emailError ? "border-red-500" : ""}
+                    />
                     {#if emailError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{emailError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{emailError}</p>
                     {/if}
                 </div>
-
-                <div class="space-y-2">
-                    <Label for="password" class="text-sm font-medium">Password</Label>
+                
+                <div>
+                    <Label for="password" class="text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
                     <div class="relative">
-                        <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
+                        <Input 
+                            id="password" 
+                            type={showPassword ? "text" : "password"} 
                             bind:value={password}
-                            on:input={handlePasswordChange}
-                            autocomplete="new-password"
-                            disabled={loading}
-                            class={passwordError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!passwordError}
+                            placeholder="Create a password" 
+                            required
+                            class={passwordError ? "border-red-500" : ""}
                         />
                         <button 
                             type="button" 
-                            class="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:text-foreground"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             on:click={togglePasswordVisibility}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                            tabindex="-1"
                         >
                             {#if showPassword}
-                                <EyeOff class="w-4 h-4" />
+                                <EyeOff class="h-5 w-5" />
                             {:else}
-                                <Eye class="w-4 h-4" />
+                                <Eye class="h-5 w-5" />
                             {/if}
                         </button>
                     </div>
-                    {#if password}
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2">
-                            <div class="h-1.5 rounded-full transition-all {passwordStrength <= 2 ? 'bg-red-500' : passwordStrength <= 3 ? 'bg-yellow-500' : 'bg-green-500'}" style="width: {passwordStrength * 20}%"></div>
+                    
+                    {#if password && !passwordError}
+                        <div class="mt-2">
+                            <div class="h-1 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                                <div class="h-1 rounded-full transition-all duration-300 ease-in-out" 
+                                    class:bg-red-500={passwordStrength <= 2}
+                                    class:bg-yellow-500={passwordStrength === 3}
+                                    class:bg-green-500={passwordStrength >= 4}
+                                    style="width: {passwordStrength * 20}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs" 
+                               class:text-red-500={passwordStrength <= 2}
+                               class:text-yellow-500={passwordStrength === 3}
+                               class:text-green-500={passwordStrength >= 4}>
+                                {passwordFeedback}
+                            </p>
                         </div>
-                        <p class="text-xs mt-1 {passwordStrength <= 2 ? 'text-red-500' : passwordStrength <= 3 ? 'text-yellow-500' : 'text-green-500'}">{passwordFeedback}</p>
                     {/if}
+                    
                     {#if passwordError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{passwordError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{passwordError}</p>
                     {/if}
                 </div>
-
-                <div class="space-y-2">
-                    <Label for="confirmPassword" class="text-sm font-medium">Confirm Password</Label>
+                
+                <div>
+                    <Label for="confirmPassword" class="text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</Label>
                     <div class="relative">
-                        <Input
-                            id="confirmPassword"
-                            type={showConfirmPassword ? "text" : "password"}
+                        <Input 
+                            id="confirmPassword" 
+                            type={showConfirmPassword ? "text" : "password"} 
                             bind:value={confirmPassword}
-                            autocomplete="new-password"
-                            disabled={loading}
-                            class={confirmPasswordError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!confirmPasswordError}
+                            placeholder="Confirm your password" 
+                            required
+                            class={confirmPasswordError ? "border-red-500" : ""}
                         />
                         <button 
                             type="button" 
-                            class="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:text-foreground"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             on:click={toggleConfirmPasswordVisibility}
-                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                            tabindex="-1"
                         >
                             {#if showConfirmPassword}
-                                <EyeOff class="w-4 h-4" />
+                                <EyeOff class="h-5 w-5" />
                             {:else}
-                                <Eye class="w-4 h-4" />
+                                <Eye class="h-5 w-5" />
                             {/if}
                         </button>
                     </div>
                     {#if confirmPasswordError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{confirmPasswordError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{confirmPasswordError}</p>
                     {/if}
                 </div>
-
-                <div class="space-y-2">
-                    <Label for="role" class="text-sm font-medium">Role</Label>
-                    <Select bind:value={role} disabled={loading}>
-                        <SelectTrigger id="role" class={roleError ? "border-destructive focus-visible:ring-destructive/30" : ""}>
-                            <SelectValue placeholder="Select your role" />
+                
+                <div>
+                    <Label for="role" class="text-sm font-medium text-gray-700 dark:text-gray-300">Role</Label>
+                    <Select bind:value={role}>
+                        <SelectTrigger id="role" class={roleError ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value={USER_ROLES.TEACHER}>Teacher</SelectItem>
-                            <SelectItem value={USER_ROLES.STUDENT}>Student</SelectItem>
+                            <SelectItem value="STUDENT">Student</SelectItem>
+                            <SelectItem value="TEACHER">Teacher</SelectItem>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
                         </SelectContent>
                     </Select>
                     {#if roleError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{roleError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{roleError}</p>
                     {/if}
                 </div>
-
-                <Button type="submit" class="w-full mt-2 h-11" disabled={loading}>
-                    {#if loading}
-                        <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                        Creating account...
-                    {:else}
-                        Create account
-                    {/if}
-                </Button>
-            </form>
-
-            <p class="mt-6 text-sm text-center text-muted-foreground">
-                Already have an account?
-                <a href="/login" class="font-medium text-primary hover:underline focus:outline-none focus:underline">Sign in</a>
-            </p>
-        </div>
-    </div>
-    
-    <!-- Right side - Illustration (hidden on small screens) -->
-    <div class="hidden lg:block lg:w-1/2 bg-muted/30">
-        <div class="flex items-center justify-center h-full p-8">
-            <img 
-                src="/auth-illustration-register.svg" 
-                alt="Register illustration" 
-                class="object-contain max-w-full max-h-full"
-                width="500"
-                height="500"
-            />
-        </div>
+            </div>
+            
+            <Button 
+                type="submit" 
+                class="w-full" 
+                disabled={loading}
+            >
+                {#if loading}
+                    <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                {:else}
+                    Sign up
+                {/if}
+            </Button>
+            
+            <div class="mt-4 text-center text-sm">
+                <span class="text-gray-600 dark:text-gray-400">
+                    Already have an account?
+                </span>
+                <button 
+                    type="button" 
+                    class="ml-1 font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300" 
+                    on:click={goToLogin}
+                >
+                    Sign in
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

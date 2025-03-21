@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import type { User, UserStore } from '$lib/types';
 import { authService } from '$lib/services/auth';
 import { browser } from '$app/environment';
+import { USER_ROLES } from '$lib/config';
 
 // Initial state
 const initialState: UserStore = {
@@ -26,12 +27,7 @@ function createUserStore() {
       
       try {
         const user = await authService.getCurrentUser();
-        
-        if (user) {
-          set({ user, loading: false, error: null });
-        } else {
-          set({ user: null, loading: false, error: null });
-        }
+        set({ user, loading: false, error: null });
       } catch (error: any) {
         console.error('Error initializing user store:', error);
         set({ user: null, loading: false, error: error.message || 'Failed to load user' });
@@ -62,13 +58,20 @@ function createUserStore() {
       update(state => ({ ...state, loading: true, error: null }));
       
       try {
-        const user = await authService.createAccount({
-          email,
-          password,
-          name,
-          role: role as any
-        });
+        // Convert string role to the proper type using USER_ROLES
+        let userRole;
+        switch(role) {
+          case 'admin':
+            userRole = USER_ROLES.ADMIN;
+            break;
+          case 'teacher':
+            userRole = USER_ROLES.TEACHER;
+            break;
+          default:
+            userRole = USER_ROLES.STUDENT;
+        }
         
+        const user = await authService.register(email, password, name, userRole);
         set({ user, loading: false, error: null });
         return user;
       } catch (error: any) {
@@ -90,29 +93,6 @@ function createUserStore() {
       } catch (error: any) {
         console.error('Logout error:', error);
         update(state => ({ ...state, loading: false, error: error.message || 'Logout failed' }));
-        throw error;
-      }
-    },
-    
-    /**
-     * Update the current user
-     */
-    updateUser: async (userId: string, userData: any) => {
-      update(state => ({ ...state, loading: true }));
-      
-      try {
-        const updatedUser = await authService.updateUser(userId, userData);
-        
-        update(state => ({
-          ...state,
-          user: updatedUser,
-          loading: false
-        }));
-        
-        return updatedUser;
-      } catch (error: any) {
-        console.error('Update user error:', error);
-        update(state => ({ ...state, loading: false, error: error.message || 'Update failed' }));
         throw error;
       }
     },

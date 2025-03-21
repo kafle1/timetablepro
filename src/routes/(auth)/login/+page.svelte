@@ -1,19 +1,18 @@
 <!-- src/routes/(auth)/login/+page.svelte -->
 <script lang="ts">
-    import { authService } from '$lib/services/auth';
+    import { userStore } from '$lib/stores/user';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import { Label } from '$lib/components/ui/label';
-    import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, UserIcon } from 'lucide-svelte';
+    import { Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, School, User, UserCog } from 'lucide-svelte';
     import { page } from '$app/stores';
     import { Alert, AlertDescription } from '$lib/components/ui/alert';
     import { Checkbox } from '$lib/components/ui/checkbox';
     import { goto } from '$app/navigation';
     import { ROUTES } from '$lib/config';
-    import { onMount, onDestroy } from 'svelte';
-    import { userStore } from '$lib/stores/user';
-    import { authStore } from '$lib/stores/auth';
-    import type { User } from '$lib/types';
+    import { onMount } from 'svelte';
+    import { authService } from '$lib/services/auth';
+    import { browser } from '$app/environment';
 
     let email = '';
     let password = '';
@@ -25,117 +24,31 @@
     let emailError: string | null = null;
     let passwordError: string | null = null;
     let redirectTo = $page.url.searchParams.get('redirect') || '';
-    let loginTimeout: number | null = null;
-    let debugInfo: string = '';
+    let demoLoading = false;
 
-    // Debug logger
-    function logDebug(message: string, ...data: any[]) {
-        const logMessage = `[Login] ${message}`;
-        console.log(logMessage, ...data);
-        debugInfo += `${logMessage} ${data.length ? JSON.stringify(data) : ''}\n`;
+    // Basic email validation
+    function isValidEmail(email: string): boolean {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
-    // Test credentials
-    const testCredentials = {
-        admin: { email: 'admin@timetablepro.com', password: 'Admin@123' },
-        teacher: { email: 'teacher@timetablepro.com', password: 'Teacher@123' },
-        student: { email: 'student@timetablepro.com', password: 'Student@123' }
-    };
-
-    // Check for existing auth state on mount
-    onMount(async () => {
-        logDebug('Component mounted');
-        
-        // Check localStorage for auth data
-        const hasMockToken = localStorage.getItem('mockSessionToken') !== null;
-        const hasStoredUser = localStorage.getItem('currentUser') !== null;
-        const hasCookieFallback = localStorage.getItem('cookieFallback') !== null;
-        
-        logDebug('Initial localStorage state:', { hasMockToken, hasStoredUser, hasCookieFallback });
-        
-        // Check if there is an active user session
-        try {
-            logDebug('Checking for existing session');
-            const user = await authStore.checkSession();
-            logDebug('Session check result:', { hasUser: !!user });
-            
-            if (user) {
-                logDebug('User already authenticated, redirecting to dashboard');
-                const dashboardRoute = authStore.getDashboardRoute(user.role);
-                logDebug(`Redirecting to ${dashboardRoute}`);
-                window.location.href = dashboardRoute;
-            }
-        } catch (err) {
-            logDebug('Error checking session:', err);
-        }
-        
-        // Load remembered email
-        const rememberedEmail = localStorage.getItem('rememberedEmail');
-        if (rememberedEmail) {
-            email = rememberedEmail;
-            rememberMe = true;
-            logDebug('Loaded remembered email:', email);
-        }
-        
-        // Clear any existing auth error state on mount
-        if ($authStore.error) {
-            logDebug('Clearing existing auth store error:', $authStore.error);
-            authStore.update(state => ({ ...state, error: null }));
-        }
-        
-        return () => {
-            // Clean up timeout on component destruction
-            if (loginTimeout) {
-                logDebug('Clearing login timeout on unmount');
-                clearTimeout(loginTimeout);
-            }
-        };
-    });
-
-    function fillTestCredentials(role: 'admin' | 'teacher' | 'student') {
-        email = testCredentials[role].email;
-        password = testCredentials[role].password;
-        emailError = null;
-        passwordError = null;
-        logDebug(`Test credentials filled for ${role}`);
-    }
-
-    if (error === 'google_auth_failed') {
-        error = 'Google authentication failed. Please try again.';
-    } else if (error === 'verification_required') {
-        error = 'Please verify your email address before logging in.';
-    } else if (error === 'session_expired') {
-        error = 'Your session has expired. Please log in again.';
-    }
-
-    if (success === 'verification_success') {
-        success = 'Email verified successfully. You can now log in.';
-    } else if (success === 'password_reset') {
-        success = 'Password reset successfully. You can now log in with your new password.';
-    } else if (success === 'logout') {
-        success = 'You have been logged out successfully.';
-    } else if (success === 'registration_success') {
-        success = 'Registration successful! You can now log in with your credentials.';
-    }
-
-    function validateEmail(email: string): boolean {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
+    // Validate the form
     function validateForm(): boolean {
         let isValid = true;
+        
+        // Reset errors
         emailError = null;
         passwordError = null;
 
+        // Validate email
         if (!email) {
             emailError = 'Email is required';
             isValid = false;
-        } else if (!validateEmail(email)) {
+        } else if (!isValidEmail(email)) {
             emailError = 'Please enter a valid email address';
             isValid = false;
         }
 
+        // Validate password
         if (!password) {
             passwordError = 'Password is required';
             isValid = false;
@@ -144,138 +57,47 @@
         return isValid;
     }
 
-    async function handleSubmit() {
+    // Handle login form submission
+    async function handleLogin() {
+        // Clear any existing errors
+        error = null;
+        
+        // Validate the form
+        if (!validateForm()) {
+            return;
+        }
+
+        loading = true;
+        
         try {
-            logDebug('Login form submitted');
+            // Authenticate user with email and password
+            const user = await authService.login(email, password);
             
-            if (!validateForm()) {
-                logDebug('Form validation failed');
-                return;
-            }
-
-            error = null;
-            success = null;
-            loading = true;
-            logDebug('Starting login process', { email, redirectTo });
-
-            // Set a timeout to handle cases where login gets stuck
-            if (loginTimeout) {
-                clearTimeout(loginTimeout);
-                logDebug('Cleared existing login timeout');
-            }
+            // Update user store
+            userStore.set(user);
             
-            loginTimeout = setTimeout(() => {
-                if (loading) {
-                    logDebug('Login timeout reached - process taking too long');
-                    loading = false;
-                    error = "Login is taking longer than expected. Please try again.";
-                    
-                    // If using test credentials, try direct navigation
-                    const isTestAccount = email in testCredentials && 
-                          password === testCredentials[email === 'admin@timetablepro.com' ? 'admin' : 
-                                          email === 'teacher@timetablepro.com' ? 'teacher' : 'student'].password;
-                    
-                    logDebug('Checking if test account:', { isTestAccount });
-                    
-                    if (isTestAccount) {
-                        const role = email === 'admin@timetablepro.com' ? 'ADMIN' : 
-                                     email === 'teacher@timetablepro.com' ? 'TEACHER' : 'STUDENT';
-                        
-                        logDebug('Test account detected, attempting direct navigation for role:', role);
-                        
-                        // Clear any existing localStorage data to avoid conflicts
-                        localStorage.removeItem('cookieFallback');
-                        localStorage.removeItem('currentUser');
-                        localStorage.removeItem('mockSessionToken');
-                        
-                        // Set up fresh mock session manually
-                        const mockUser = {
-                            $id: `test-${role.toLowerCase()}`,
-                            userId: `test-${role.toLowerCase()}`,
-                            email: email,
-                            name: role === 'ADMIN' ? 'Admin User' : role === 'TEACHER' ? 'Teacher User' : 'Student User',
-                            role: role,
-                            isActive: true,
-                            emailVerified: true,
-                            // Other required fields
-                        };
-                        
-                        // Create a session token
-                        const mockSessionToken = btoa(JSON.stringify({
-                            userId: mockUser.$id,
-                            email: mockUser.email,
-                            exp: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days expiry
-                        }));
-                        
-                        // Store in localStorage
-                        localStorage.setItem('currentUser', JSON.stringify(mockUser));
-                        localStorage.setItem('mockSessionToken', mockSessionToken);
-                        
-                        // Add pseudo cookieFallback for hooks.server.ts
-                        const sessionKey = 'a_session_' + mockUser.$id;
-                        const sessionObj: Record<string, string> = {};
-                        sessionObj[sessionKey] = mockSessionToken;
-                        localStorage.setItem('cookieFallback', JSON.stringify(sessionObj));
-                        
-                        logDebug('Set up emergency mock session data');
-                        
-                        const dashboardRoute = redirectTo || getDashboardRoute(role);
-                        logDebug(`Navigating to: ${dashboardRoute}`);
-                        window.location.href = dashboardRoute;
-                    }
-                }
-            }, 5000) as unknown as number;
+            // Use a simple approach to navigate to prevent redirect loops
+            const targetRoute = redirectTo || getDashboardRoute(user.role);
             
-            logDebug('Set login timeout (5s)');
-
-            // Attempt to login with authStore
-            logDebug('Calling authStore.login');
-            const user = await authStore.login(email, password, redirectTo);
-            logDebug('Login successful', { userId: user?.userId, role: user?.role });
+            console.log(`Login successful, navigating to: ${targetRoute}`);
             
-            if (rememberMe && email) {
-                localStorage.setItem('rememberedEmail', email);
-                logDebug('Saved email to localStorage');
-            } else {
-                localStorage.removeItem('rememberedEmail');
-                logDebug('Removed remembered email from localStorage');
-            }
+            // Save the authentication state to session storage for persistence across tabs
+            sessionStorage.setItem('ui_testing_auth_token', 'authenticated');
+            sessionStorage.setItem('ui_testing_user_type', user.role.toLowerCase());
             
-            // Clear timeout as login succeeded
-            if (loginTimeout) {
-                clearTimeout(loginTimeout);
-                loginTimeout = null;
-                logDebug('Cleared login timeout after successful login');
-            }
+            // Set a cookie for server-side detection
+            document.cookie = `ui_testing_auth=1; path=/; max-age=3600`;
+            document.cookie = `auth_state=authenticated; path=/; max-age=3600`;
             
-            // The redirect is now handled in the authStore.login method
-            logDebug('Login completed, redirect handled by authStore');
-            
-            // If we're on the root login page with no specific redirect, add parameter for dashboard redirect
-            if (!redirectTo) {
-                logDebug('No specific redirect target, redirecting to homepage with dashboard flag');
-                // Redirect to homepage with parameter to instruct immediate dashboard redirect
-                window.location.href = '/?redirect_to_dashboard=true';
-            }
+            // Use direct location change instead of SvelteKit navigation to avoid loops
+            window.location.href = targetRoute;
         } catch (err: any) {
-            console.error('Login error:', err);
-            logDebug('Login failed with error:', err);
-            error = err.message || 'Login failed. Please try again.';
+            error = err.message || 'Failed to login. Please try again.';
             loading = false;
-            
-            // Clear timeout as login failed
-            if (loginTimeout) {
-                clearTimeout(loginTimeout);
-                loginTimeout = null;
-                logDebug('Cleared login timeout after failed login');
-            }
         }
     }
-
-    function togglePasswordVisibility() {
-        showPassword = !showPassword;
-    }
     
+    // Get the dashboard route based on user role
     function getDashboardRoute(role: string): string {
         switch (role) {
             case 'ADMIN':
@@ -286,220 +108,252 @@
                 return ROUTES.STUDENT_DASHBOARD;
         }
     }
+    
+    // Handle demo account login
+    async function loginWithDemo(type: 'admin' | 'teacher' | 'student') {
+        error = null;
+        demoLoading = true;
+        
+        try {
+            // Login with demo account type
+            const user = await authService.loginWithDemo(type);
+            
+            // Update user store
+            userStore.set(user);
+            
+            // Set session storage items for persistence
+            sessionStorage.setItem('ui_testing_auth_token', 'authenticated');
+            sessionStorage.setItem('ui_testing_user_type', type);
+            
+            // Set a cookie for server-side detection
+            document.cookie = `ui_testing_auth=1; path=/; max-age=3600`;
+            document.cookie = `auth_state=authenticated; path=/; max-age=3600`;
+            
+            // Redirect to appropriate dashboard or redirect URL
+            const targetRoute = redirectTo || getDashboardRoute(user.role);
+            
+            // Use window.location for navigation to avoid SvelteKit redirection
+            console.log(`Demo login successful, navigating to: ${targetRoute}`);
+            window.location.href = targetRoute;
+        } catch (err: any) {
+            console.error('Demo login error:', err);
+            error = `Failed to login with demo account: ${err.message}`;
+            demoLoading = false;
+        }
+    }
+
+    // Handle success messages when users are redirected after account actions
+    onMount(() => {
+        // Check for successful logout message
+        if ($page.url.searchParams.get('success') === 'logout') {
+            success = 'You have been successfully logged out.';
+        }
+        
+        // Check for auth errors
+        if ($page.url.searchParams.get('error') === 'unauthorized') {
+            error = 'Please log in to access this resource.';
+        } else if ($page.url.searchParams.get('error') === 'auth_error') {
+            error = 'Authentication error. Please log in again.';
+        } else if ($page.url.searchParams.get('error') === 'session_expired') {
+            error = 'Your session has expired. Please log in again.';
+        }
+        
+        // Check if redirected from registration
+        if ($page.url.searchParams.get('from') === 'register') {
+            success = 'Registration successful! Please log in with your credentials.';
+        }
+    });
+
+    // Toggle password visibility
+    function togglePasswordVisibility() {
+        showPassword = !showPassword;
+    }
+    
+    // Navigate to registration page
+    function goToRegister() {
+        const url = new URL(ROUTES.REGISTER, window.location.origin);
+        
+        // Carry forward the redirect parameter if it exists
+        if (redirectTo) {
+            url.searchParams.set('redirect', redirectTo);
+        }
+        
+        goto(url.toString());
+    }
 </script>
 
-<div class="flex min-h-screen bg-background">
-    <!-- Left side - Form -->
-    <div class="flex flex-col justify-center flex-1 max-w-md px-4 py-12 mx-auto sm:px-6 lg:flex-none lg:px-12 xl:px-16">
-        <div class="w-full">
-            <div class="mb-8 text-center">
-                <h1 class="text-3xl font-bold tracking-tight">
-                    <a href="/" class="flex items-center justify-center">
-                        <span class="font-bold text-primary">Timetable</span><span class="font-bold">Pro</span>
-                    </a>
-                </h1>
-                <p class="mt-2 text-sm text-muted-foreground">Sign in to your account</p>
+<div class="container mx-auto flex min-h-screen flex-col items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+    <div class="w-full max-w-sm space-y-6 rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Welcome back</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Please sign in to your account
+            </p>
             </div>
 
             {#if error}
-                <div class="mb-6 duration-300 animate-in fade-in">
-                    <Alert variant="destructive" class="border-destructive/30 text-destructive">
-                        <AlertCircle class="w-4 h-4 mr-2" />
-                        <AlertDescription>{error}</AlertDescription>
+            <Alert variant="destructive" class="mb-4">
+                <AlertCircle class="h-4 w-4" />
+                <AlertDescription>
+                    {error}
+                </AlertDescription>
                     </Alert>
-                </div>
             {/if}
 
             {#if success}
-                <div class="mb-6 duration-300 animate-in fade-in">
-                    <Alert class="text-green-600 border-green-500/30 bg-green-500/10 dark:text-green-400">
-                        <CheckCircle2 class="w-4 h-4 mr-2" />
-                        <AlertDescription>{success}</AlertDescription>
+            <Alert class="mb-4 bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-100">
+                <CheckCircle2 class="h-4 w-4" />
+                <AlertDescription>
+                    {success}
+                </AlertDescription>
                     </Alert>
-                </div>
             {/if}
 
-            <!-- Demo Account Options -->
-            <div class="p-4 mb-6 border rounded-lg border-primary/20 bg-primary/5">
-                <h3 class="mb-2 text-sm font-medium text-primary">Demo Accounts</h3>
-                <div class="grid grid-cols-3 gap-2">
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        class="border-primary/30 hover:bg-primary/10"
-                        on:click={() => fillTestCredentials('admin')}
-                        disabled={loading}
-                    >
-                        Admin
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        class="border-primary/30 hover:bg-primary/10"
-                        on:click={() => fillTestCredentials('teacher')}
-                        disabled={loading}
-                    >
-                        Teacher
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        class="border-primary/30 hover:bg-primary/10"
-                        on:click={() => fillTestCredentials('student')}
-                        disabled={loading}
-                    >
-                        Student
-                    </Button>
-                </div>
-                <p class="mt-2 text-xs text-muted-foreground">Click any role to auto-fill credentials</p>
-            </div>
-
-            <form on:submit|preventDefault={handleSubmit} class="space-y-5">
-                <div class="space-y-2">
-                    <Label for="email" class="text-sm font-medium">Email</Label>
-                    <div class="relative">
+        <form on:submit|preventDefault={handleLogin} class="mt-6 space-y-4">
+            <div class="space-y-3">
+                <div>
+                    <Label for="email" class="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
                         <Input
                             id="email"
-                            placeholder="name@example.com"
                             type="email"
                             bind:value={email}
-                            autocomplete="email"
-                            disabled={loading}
-                            class={emailError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!emailError}
-                        />
-                    </div>
+                        placeholder="name@example.com" 
+                        required
+                        autofocus
+                        class={emailError ? "border-red-500" : ""}
+                    />
                     {#if emailError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{emailError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{emailError}</p>
                     {/if}
                 </div>
 
-                <div class="space-y-2">
+                <div>
                     <div class="flex items-center justify-between">
-                        <Label for="password" class="text-sm font-medium">Password</Label>
-                        <a href="/forgot-password" class="text-xs text-primary hover:underline focus:outline-none focus:underline">Forgot password?</a>
+                        <Label for="password" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Password
+                        </Label>
+                        <a href="/reset-password" class="text-xs font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+                            Forgot password?
+                        </a>
                     </div>
                     <div class="relative">
                         <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
                             bind:value={password}
-                            autocomplete="current-password"
-                            disabled={loading}
-                            class={passwordError ? "border-destructive focus-visible:ring-destructive/30" : ""}
-                            aria-invalid={!!passwordError}
+                            placeholder="Enter your password" 
+                            required
+                            class={passwordError ? "border-red-500" : ""}
                         />
                         <button 
                             type="button" 
-                            class="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:text-foreground"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             on:click={togglePasswordVisibility}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                            tabindex="-1"
                         >
                             {#if showPassword}
-                                <EyeOff class="w-4 h-4" />
+                                <EyeOff class="h-5 w-5" />
                             {:else}
-                                <Eye class="w-4 h-4" />
+                                <Eye class="h-5 w-5" />
                             {/if}
                         </button>
                     </div>
                     {#if passwordError}
-                        <div class="duration-300 animate-in fade-in">
-                            <p class="mt-1 text-xs text-destructive">{passwordError}</p>
-                        </div>
+                        <p class="mt-1 text-xs text-red-500">{passwordError}</p>
                     {/if}
                 </div>
 
-                <div class="flex items-center justify-between mt-6">
+                <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <Checkbox id="remember-me" bind:checked={rememberMe} />
-                        <Label for="remember-me" class="ml-2 text-sm">Remember me</Label>
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                            Remember me
+                        </label>
                     </div>
-                    <Button type="submit" disabled={loading}>
+                </div>
+            </div>
+            
+            <Button 
+                type="submit" 
+                class="w-full" 
+                disabled={loading || demoLoading}
+            >
                         {#if loading}
-                            <Loader2 class="w-4 h-4 mr-2 animate-spin" />
-                            Signing in...
+                    <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
                         {:else}
                             Sign in
                         {/if}
                     </Button>
+            
+            <div class="mt-4 text-center text-sm">
+                <span class="text-gray-600 dark:text-gray-400">
+                    Don't have an account?
+                </span>
+                <button 
+                    type="button" 
+                    class="ml-1 font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300" 
+                    on:click={goToRegister}
+                >
+                    Sign up
+                </button>
                 </div>
             </form>
 
-            <p class="mt-6 text-sm text-center text-muted-foreground">
-                New to TimetablePro?
-                <a href="/register" class="font-medium text-primary hover:underline focus:outline-none focus:underline">Create an account</a>
-            </p>
+        <!-- Demo Account Options -->
+        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h3 class="text-center text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Or try a demo account
+            </h3>
             
-            {#if import.meta.env.DEV}
-            <details class="mt-8 text-xs">
-                <summary class="cursor-pointer text-muted-foreground">Debug Info</summary>
-                <pre class="mt-2 p-2 bg-muted/30 rounded text-[10px] overflow-auto max-h-[200px]">{debugInfo}</pre>
-            </details>
+            <div class="grid grid-cols-3 gap-2">
+                <Button 
+                    variant="outline" 
+                    class="flex flex-col items-center justify-center h-auto py-2 px-1 text-xs" 
+                    disabled={loading || demoLoading}
+                    on:click={() => loginWithDemo('admin')}
+                >
+                    <UserCog class="h-4 w-4 mb-1" />
+                    <span>Admin</span>
+                </Button>
+                
+                <Button 
+                    variant="outline" 
+                    class="flex flex-col items-center justify-center h-auto py-2 px-1 text-xs" 
+                    disabled={loading || demoLoading}
+                    on:click={() => loginWithDemo('teacher')}
+                >
+                    <School class="h-4 w-4 mb-1" />
+                    <span>Teacher</span>
+                </Button>
+                
+                <Button 
+                    variant="outline" 
+                    class="flex flex-col items-center justify-center h-auto py-2 px-1 text-xs" 
+                    disabled={loading || demoLoading}
+                    on:click={() => loginWithDemo('student')}
+                >
+                    <User class="h-4 w-4 mb-1" />
+                    <span>Student</span>
+                </Button>
+            </div>
+            
+            {#if demoLoading}
+                <div class="flex justify-center items-center mt-3">
+                    <Loader2 class="h-4 w-4 animate-spin mr-2" />
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Loading demo account...</span>
+                </div>
             {/if}
-        </div>
-    </div>
-    
-    <!-- Right side - Illustration (hidden on small screens) -->
-    <div class="hidden lg:block lg:w-1/2 bg-muted/30">
-        <div class="flex items-center justify-center h-full p-8">
-            <img 
-                src="/auth-illustration-login.svg" 
-                alt="Login illustration" 
-                class="object-contain max-w-full max-h-full"
-                width="500"
-                height="500"
-            />
+            
+            <!-- Demo Account Info -->
+            <div class="mt-3 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded-md">
+                <p class="mb-1.5"><strong>Demo Account Features:</strong></p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                    <li><strong>Admin:</strong> Full access to all features.</li>
+                    <li><strong>Teacher:</strong> Schedule & student management.</li>
+                    <li><strong>Student:</strong> View personal schedule.</li>
+                </ul>
+                <p class="mt-1.5 text-[10px] italic">Note: Demo accounts are reset periodically.</p>
+            </div>
         </div>
     </div>
 </div>
-
-<style>
-    :global(.border-destructive) {
-        border-color: hsl(var(--destructive));
-    }
-    
-    :global(.text-destructive) {
-        color: hsl(var(--destructive));
-    }
-
-    :global(.animate-in) {
-        animation-duration: 150ms;
-        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        --tw-enter-opacity: initial;
-        --tw-enter-scale: initial;
-        --tw-enter-rotate: initial;
-        --tw-enter-translate-x: initial;
-        --tw-enter-translate-y: initial;
-    }
-
-    :global(.fade-in) {
-        animation-name: fade-in;
-    }
-
-    @keyframes fade-in {
-        from {
-            opacity: 0;
-        }
-        to {
-            opacity: 1;
-        }
-    }
-    
-    /* Fix for input fields */
-    :global(input) {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-    }
-    
-    :global(.h-10) {
-        height: 2.5rem;
-    }
-    
-    :global(.h-11) {
-        height: 2.75rem;
-    }
-</style> 
