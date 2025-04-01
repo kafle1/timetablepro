@@ -278,42 +278,41 @@ class AuthService {
    */
   async loginWithDemo(type: 'admin' | 'teacher' | 'student'): Promise<User> {
     try {
-      let email: string;
-      
-      switch (type) {
-        case 'admin':
-          email = 'admin@timetablepro.com';
-          break;
-        case 'teacher':
-          email = 'teacher@timetablepro.com';
-          break;
-        case 'student':
-          email = 'student@timetablepro.com';
-          break;
-        default:
-          throw new Error('Invalid demo account type');
+      // Get demo account credentials
+      const demoEmail = `${type}@timetablepro.com`;
+      const demoPassword = DEMO_ACCOUNTS[demoEmail].password;
+
+      // First, try to delete any existing session
+      try {
+        await account.deleteSession('current');
+      } catch (error) {
+        // Ignore errors when deleting non-existent session
+        console.log('No existing session to delete');
       }
 
-      // First try to login
-      try {
-        await account.createEmailSession(email, DEMO_ACCOUNTS[email].password);
-      } catch (error) {
-        // If login fails, create the account
-        await this.createDemoAccount(email);
-        // Try login again
-        await account.createEmailSession(email, DEMO_ACCOUNTS[email].password);
-      }
+      // Create email session
+      await account.createEmailSession(demoEmail, demoPassword);
 
       // Get user data
       const user = await this.getCurrentUser();
       if (!user) {
-        throw new Error('Failed to get user data after login');
+        throw new Error('Demo user not found in database');
+      }
+
+      // Ensure the user has the correct role
+      if (user.role !== type.toUpperCase()) {
+        throw new Error('Invalid demo account role');
       }
 
       return user;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Demo login error:', error);
-      throw error;
+      if (error.code === 401) {
+        throw new Error('Invalid demo account credentials');
+      } else if (error.code === 429) {
+        throw new Error('Too many login attempts. Please try again later.');
+      }
+      throw new Error(error.message || 'Failed to login with demo account');
     }
   }
 

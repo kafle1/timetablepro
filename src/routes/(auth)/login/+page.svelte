@@ -130,23 +130,16 @@
             // Update user store
             userStore.set(user);
             
-            // Set session storage items for persistence
-            sessionStorage.setItem('ui_testing_auth_token', 'authenticated');
-            sessionStorage.setItem('ui_testing_user_type', type);
-            
-            // Set a cookie for server-side detection
-            document.cookie = `ui_testing_auth=1; path=/; max-age=3600`;
-            document.cookie = `auth_state=authenticated; path=/; max-age=3600`;
-            
-            // Redirect to appropriate dashboard or redirect URL
+            // Get the target route
             const targetRoute = redirectTo || getDashboardRoute(user.role);
             
-            // Use SvelteKit's goto for navigation
             console.log(`Demo login successful, navigating to: ${targetRoute}`);
+            
+            // Use SvelteKit's goto for navigation with replaceState
             await goto(targetRoute, { replaceState: true });
         } catch (err: any) {
             console.error('Demo login error:', err);
-            error = `Failed to login with demo account: ${err.message}`;
+            error = err.message || 'Failed to login with demo account';
             demoLoading = false;
             isNavigating = false; // Reset guard flag on error
         }

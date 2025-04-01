@@ -7,6 +7,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			user: User | null;
+			clearCookiesHeader?: string;
 		}
 		// interface PageData {}
 		// interface Platform {}

@@ -48,37 +48,47 @@
     },
     {
       title: 'Schedule',
-      href: ROUTES.SCHEDULES,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.SCHEDULES
+        : $userStore?.role === USER_ROLES.TEACHER
+          ? ROUTES.TEACHER.SCHEDULES
+          : ROUTES.STUDENT.SCHEDULES,
       icon: Calendar,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     },
     {
       title: 'Teachers',
-      href: ROUTES.TEACHERS,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.TEACHERS
+        : ROUTES.STUDENT.TEACHERS,
       icon: Users,
-      roles: [USER_ROLES.ADMIN]
+      roles: [USER_ROLES.ADMIN, USER_ROLES.STUDENT]
     },
     {
       title: 'Students',
-      href: ROUTES.STUDENTS,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.STUDENTS
+        : ROUTES.TEACHER.STUDENTS,
       icon: Users,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
     },
     {
       title: 'Rooms',
-      href: ROUTES.ROOMS,
+      href: ROUTES.ADMIN.ROOMS,
       icon: Building2,
       roles: [USER_ROLES.ADMIN]
     },
     {
       title: 'Availability',
-      href: ROUTES.AVAILABILITY,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.AVAILABILITY
+        : ROUTES.TEACHER.AVAILABILITY,
       icon: Calendar,
-      roles: [USER_ROLES.TEACHER]
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
     },
     {
       title: 'Reports',
-      href: ROUTES.REPORTS,
+      href: ROUTES.ADMIN.REPORTS,
       icon: AlertTriangle,
       roles: [USER_ROLES.ADMIN]
     },
@@ -86,7 +96,7 @@
       title: 'Settings',
       href: ROUTES.SETTINGS,
       icon: Settings,
-      roles: [USER_ROLES.ADMIN]
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     }
   ];
 
@@ -117,11 +127,12 @@
   // Handle logout
   async function handleLogout() {
     try {
-      // Reset user store (which also calls auth service logout)
-      await userStore.reset();
-      
-      // Redirect to login page
-      window.location.href = '/login?success=logout';
+      // Reset user store 
+      await authService.logout();
+      userStore.set(null);
+
+      // Use goto for navigation
+      await goto('/login?success=logout');
     } catch (error) {
       console.error('Error during logout:', error);
     }

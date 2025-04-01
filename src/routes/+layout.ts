@@ -38,33 +38,31 @@ export const trailingSlash = 'never';
 export const csr = true;
 
 export const load: LayoutLoad = async ({ url }) => {
-    // Removed UI_TESTING_MODE block
-
-    if (browser) {
-        try {
-            const user = await authService.getCurrentUser();
-            if (user) {
-                userStore.set(user); // Update the store
-                return { user };
-            } else {
-                 // No user session found
-                 userStore.set(null);
-                 return { user: null };
-            }
-        } catch (error) {
-            console.error("Error loading user data in layout:", error);
-            // Invalidate session if there's an error fetching user
-            try {
-                if (browser) await authService.logout(); // Ensure logout runs in browser
-            } catch (logoutError) {
-                console.error("Error during logout after load error:", logoutError);
-            }
-            userStore.set(null); // Ensure store is cleared
-            return { user: null };
-        }
+    // Only run on client side
+    if (!browser) {
+        return {
+            user: null,
+            url: url.pathname
+        };
     }
 
-    // Return null if not in browser (SSR) or if browser check fails initially
-    userStore.set(null); // Ensure store is null on server or initial non-browser state
-    return { user: null };
+    try {
+        // Get current user
+        const user = await authService.getCurrentUser();
+        
+        // Update user store
+        userStore.set(user);
+
+        return {
+            user,
+            url: url.pathname
+        };
+    } catch (error) {
+        console.error('Error loading user:', error);
+        userStore.set(null);
+        return {
+            user: null,
+            url: url.pathname
+        };
+    }
 }; 

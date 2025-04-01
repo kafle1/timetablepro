@@ -7,6 +7,7 @@
   import ThemeToggle from '$lib/components/theme/ThemeToggle.svelte';
   import { Button } from '$lib/components/ui/button';
   import { authService } from '$lib/services/auth';
+  import { goto } from '$app/navigation';
 
   // Navigation items
   const mainNavigation = [
@@ -96,10 +97,11 @@
   async function handleLogout() {
     try {
       // Reset user store
-      await userStore.reset();
-      
-      // Redirect to login page
-      window.location.href = '/login?success=logout';
+      await authService.logout();
+      userStore.set(null);
+
+      // Use goto for navigation
+      await goto('/login?success=logout');
     } catch (error) {
       console.error('Error during logout:', error);
     }

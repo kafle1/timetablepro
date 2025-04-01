@@ -11,6 +11,7 @@
   import { USER_ROLES, ROUTES } from '$lib/config';
   import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '$lib/components/ui/dropdown-menu';
   import { browser } from '$app/environment';
+  import { authService } from '$lib/services/auth';
 
   // Auth status tracking
   let isAuthenticated = false;
@@ -58,9 +59,14 @@
   });
 
   // Handle logout
-  function handleLogout() {
-    userStore.reset();
-    goto(ROUTES.LOGIN);
+  async function handleLogout() {
+    try {
+      await authService.logout();
+      userStore.set(null);
+      await goto(ROUTES.LOGIN + '?success=logout');
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   }
 
   // Get dashboard route based on user role
