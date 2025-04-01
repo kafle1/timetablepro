@@ -133,14 +133,15 @@ async function createDemoAccounts() {
 
   for (const account of DEMO_ACCOUNTS) {
     try {
-      // Check if user exists
-      try {
-        await users.list([Query.equal('email', account.email)]);
+      // Check if user exists by email
+      const existingUsers = await users.list([Query.equal('email', account.email)]);
+
+      if (existingUsers.total > 0) {
         console.log(`User ${account.email} already exists, skipping...`);
-        continue;
-      } catch (error) {
-        // User doesn't exist, proceed with creation
+        continue; // User found, skip to the next account
       }
+
+      // User does not exist, proceed with creation
 
       // Create user in Appwrite Auth
       const user = await users.create(
@@ -161,13 +162,14 @@ async function createDemoAccounts() {
           email: user.email,
           name: user.name,
           role: account.role,
-          emailVerified: true,
-          preferences: {}
+          isActive: true,
+          preferences: JSON.stringify({})
         }
       );
       console.log(`Created demo account: ${account.email}`);
     } catch (error) {
-      console.error(`Error creating demo account ${account.email}:`, error);
+      // Log errors not related to the existence check itself
+      console.error(`Error processing demo account ${account.email}:`, error);
     }
   }
 }
@@ -179,14 +181,15 @@ async function createTeachers() {
     try {
       await delay(1000); // Add delay to avoid rate limiting
 
-      // Check if user exists
-      try {
-        await users.list([Query.equal('email', teacher.email)]);
+      // Check if user exists by email
+      const existingUsers = await users.list([Query.equal('email', teacher.email)]);
+
+      if (existingUsers.total > 0) {
         console.log(`User ${teacher.email} already exists, skipping...`);
-        continue;
-      } catch (error) {
-        // User doesn't exist, proceed with creation
+        continue; // User found, skip to the next teacher
       }
+
+      // User does not exist, proceed with creation
 
       // Create user in Appwrite Auth
       const user = await users.create(
@@ -207,15 +210,16 @@ async function createTeachers() {
           email: user.email,
           name: user.name,
           role: teacher.role,
-          emailVerified: true,
-          preferences: {
+          isActive: true,
+          preferences: JSON.stringify({
             subjects: teacher.subjects
-          }
+          })
         }
       );
       console.log(`Created teacher: ${teacher.email}`);
     } catch (error) {
-      console.error(`Error creating teacher ${teacher.email}:`, error);
+      // Log errors not related to the existence check itself
+      console.error(`Error processing teacher ${teacher.email}:`, error);
     }
   }
 }
@@ -227,14 +231,15 @@ async function createStudents() {
     try {
       await delay(1000); // Add delay to avoid rate limiting
 
-      // Check if user exists
-      try {
-        await users.list([Query.equal('email', student.email)]);
+      // Check if user exists by email
+      const existingUsers = await users.list([Query.equal('email', student.email)]);
+
+      if (existingUsers.total > 0) {
         console.log(`User ${student.email} already exists, skipping...`);
-        continue;
-      } catch (error) {
-        // User doesn't exist, proceed with creation
+        continue; // User found, skip to the next student
       }
+
+      // User does not exist, proceed with creation
 
       // Create user in Appwrite Auth
       const user = await users.create(
@@ -255,16 +260,17 @@ async function createStudents() {
           email: user.email,
           name: user.name,
           role: student.role,
-          emailVerified: true,
-          preferences: {
+          isActive: true,
+          preferences: JSON.stringify({
             grade: student.grade,
             section: student.section
-          }
+          })
         }
       );
       console.log(`Created student: ${student.email}`);
     } catch (error) {
-      console.error(`Error creating student ${student.email}:`, error);
+      // Log errors not related to the existence check itself
+      console.error(`Error processing student ${student.email}:`, error);
     }
   }
 }

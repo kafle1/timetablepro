@@ -1,5 +1,5 @@
 import { databases, DB_CONFIG, users } from './config';
-import { Query } from 'appwrite';
+import { Query } from 'node-appwrite';
 
 async function cleanupCollection(collectionId: string) {
   try {
@@ -71,14 +71,32 @@ async function cleanupAuthUsers() {
   }
 }
 
+async function deleteCollections(collectionIds: string[]) {
+  console.log('Deleting collections...');
+  for (const collectionId of collectionIds) {
+    try {
+      await databases.deleteCollection(DB_CONFIG.databaseId, collectionId);
+      console.log(`Deleted collection: ${collectionId}`);
+    } catch (error: any) {
+      if (error.code === 404) {
+        console.log(`Collection ${collectionId} not found, skipping deletion.`);
+      } else {
+        console.error(`Error deleting collection ${collectionId}:`, error);
+        // Decide if you want to stop the process on error
+      }
+    }
+  }
+  console.log('Collections deletion process completed.');
+}
+
 async function cleanupDatabase() {
   console.log('Starting database cleanup...');
 
-  // Clean up authentication users first
+  // 1. Clean up authentication users
   await cleanupAuthUsers();
 
-  // List of collections to clean
-  const collections = [
+  // 2. Define collections to manage
+  const collectionsToClean = [
     DB_CONFIG.collections.USERS,
     DB_CONFIG.collections.ROOMS,
     DB_CONFIG.collections.SCHEDULES,
@@ -86,12 +104,15 @@ async function cleanupDatabase() {
     DB_CONFIG.collections.TEACHER_AVAILABILITY
   ];
 
-  // Clean each collection
-  for (const collectionId of collections) {
+  // 3. Clean documents within each collection (optional but safe)
+  for (const collectionId of collectionsToClean) {
     await cleanupCollection(collectionId);
   }
 
-  console.log('Database cleanup completed successfully!');
+  // 4. Delete the collections themselves
+  await deleteCollections(collectionsToClean);
+
+  console.log('Database cleanup (including collections) completed successfully!');
 }
 
 // Run the cleanup

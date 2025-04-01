@@ -1,4 +1,4 @@
-import { Client, Databases } from 'node-appwrite';
+import { Client, Databases, Permission, Role } from 'node-appwrite';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -47,7 +47,8 @@ async function initializeDatabase() {
             await databases.createCollection(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.USERS,
-                'Users'
+                'Users',
+                [Permission.read(Role.member())]
             );
             
             // Add attributes
