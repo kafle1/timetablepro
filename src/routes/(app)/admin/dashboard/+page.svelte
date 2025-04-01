@@ -6,10 +6,10 @@
     import type { Schedule, Room } from '$lib/types';
     import { onMount } from 'svelte';
     import { Button } from '$lib/components/ui/button';
-    import { Card } from '$lib/components/ui/card';
+    import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
     import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
     import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-    import { Plus, Calendar, Building2, AlertTriangle } from 'lucide-svelte';
+    import { Plus, Calendar, Building2, AlertTriangle, Users, Building, BarChart, Settings, Bell, Activity } from 'lucide-svelte';
     import ScheduleForm from '$lib/components/ScheduleForm.svelte';
     import ScheduleCalendar from '$lib/components/ScheduleCalendar.svelte';
     import { goto } from '$app/navigation';
@@ -36,11 +36,20 @@
         totalTeachers: 0,
         totalStudents: 0,
         totalSchedules: 0,
-        conflictingSchedules: 0
+        conflictingSchedules: 0,
+        teachers: 0,
+        students: 0,
+        rooms: 0,
+        upcomingEvents: 0,
+        scheduleConflicts: 0,
+        recentActivityCount: 0
     };
 
     // Recent items
     let recentSchedules: Schedule[] = [];
+
+    // Get admin name for welcome message
+    $: adminName = $userStore?.name || 'Admin';
 
     onMount(async () => {
         try {
@@ -157,178 +166,198 @@
     }
 </script>
 
-<div class="container px-4 py-8 mx-auto">
-    <h1 class="mb-6 text-3xl font-bold">Admin Dashboard</h1>
-    
-    {#if error}
-        <div class="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-md">
-            {error}
-        </div>
-    {/if}
-    
-    {#if loading}
-        <div class="flex items-center justify-center p-8">
-            <svg class="w-8 h-8 text-indigo-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-        </div>
-    {:else}
-        <!-- Statistics Cards -->
-        <div class="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-3">
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-indigo-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Total Rooms</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.totalRooms}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    on:click={() => navigateTo(ROUTES.ROOMS)}
-                >
-                    Manage Rooms
-                </button>
-            </div>
-            
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-green-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Teachers</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.totalTeachers}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    on:click={() => navigateTo(ROUTES.TEACHERS)}
-                >
-                    Manage Teachers
-                </button>
-            </div>
-            
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-blue-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Students</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.totalStudents}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    on:click={() => navigateTo(ROUTES.STUDENTS)}
-                >
-                    Manage Students
-                </button>
-            </div>
-            
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-purple-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Schedules</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.totalSchedules}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                    on:click={() => navigateTo(ROUTES.SCHEDULES)}
-                >
-                    Manage Schedules
-                </button>
-            </div>
-            
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex items-center">
-                    <div class="p-3 mr-4 text-white bg-red-500 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="mb-2 text-sm font-medium text-gray-600">Conflicts</p>
-                        <p class="text-lg font-semibold text-gray-700">{stats.conflictingSchedules}</p>
-                    </div>
-                </div>
-                <button 
-                    class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    on:click={() => navigateTo(ROUTES.SCHEDULES + '?conflicts=true')}
-                >
-                    View Conflicts
-                </button>
-            </div>
-        </div>
-        
-        <!-- Recent Items -->
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <!-- Recent Schedules -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <h2 class="mb-4 text-xl font-semibold">Recent Schedules</h2>
-                {#if recentSchedules.length === 0}
-                    <p class="text-gray-500">No recent schedules found.</p>
+<div class="container px-4 py-8 mx-auto space-y-8">
+    <h1 class="text-3xl font-bold">Welcome back, {adminName}!</h1>
+
+    <!-- Stats Cards - Wrapped with <a> tags -->
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <a href={ROUTES.ADMIN.TEACHERS} class="block transition-shadow rounded-lg hover:shadow-md">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle class="text-sm font-medium">Total Teachers</CardTitle>
+                    <Users class="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {#if loading}
+                        <div class="w-16 h-8 rounded bg-muted animate-pulse"></div>
+                    {:else}
+                        <div class="text-2xl font-bold">{stats.totalTeachers}</div>
+                        <p class="text-xs text-muted-foreground">Managed Teachers</p>
+                    {/if}
+                </CardContent>
+            </Card>
+        </a>
+        <a href={ROUTES.ADMIN.STUDENTS} class="block transition-shadow rounded-lg hover:shadow-md">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle class="text-sm font-medium">Total Students</CardTitle>
+                    <Users class="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {#if loading}
+                        <div class="w-16 h-8 rounded bg-muted animate-pulse"></div>
+                    {:else}
+                        <div class="text-2xl font-bold">{stats.totalStudents}</div>
+                        <p class="text-xs text-muted-foreground">Enrolled Students</p>
+                    {/if}
+                </CardContent>
+            </Card>
+        </a>
+        <a href={ROUTES.ADMIN.ROOMS} class="block transition-shadow rounded-lg hover:shadow-md">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle class="text-sm font-medium">Total Rooms</CardTitle>
+                    <Building class="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {#if loading}
+                        <div class="w-16 h-8 rounded bg-muted animate-pulse"></div>
+                    {:else}
+                        <div class="text-2xl font-bold">{stats.totalRooms}</div>
+                        <p class="text-xs text-muted-foreground">Available Rooms/Labs</p>
+                    {/if}
+                </CardContent>
+            </Card>
+        </a>
+        <a href={ROUTES.ADMIN.SCHEDULES + '?status=conflict'} class="block transition-shadow rounded-lg hover:shadow-md">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
+                    <CardTitle class="text-sm font-medium">Schedule Conflicts</CardTitle>
+                    <Calendar class="w-4 h-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    {#if loading}
+                        <div class="w-16 h-8 rounded bg-muted animate-pulse"></div>
+                    {:else}
+                        <div class="text-2xl font-bold text-destructive">{stats.conflictingSchedules}</div>
+                        <p class="text-xs text-muted-foreground">Detected Conflicts</p>
+                    {/if}
+                </CardContent>
+            </Card>
+        </a>
+        <Card>
+            <CardHeader class="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle class="text-sm font-medium">Recent Activities</CardTitle>
+                <Activity class="w-4 h-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                {#if loading}
+                    <div class="w-16 h-8 rounded bg-muted animate-pulse"></div>
                 {:else}
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                        Class
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                        Day
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                                        Time
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {#each recentSchedules as schedule}
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{schedule.className}</div>
-                                            <div class="text-sm text-gray-500">{schedule.subject}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900">{schedule.dayOfWeek}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900">{schedule.startTime} - {schedule.endTime}</div>
-                                        </td>
-                                    </tr>
-                                {/each}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4 text-right">
-                        <a href="/schedule" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                            View all schedules →
-                        </a>
-                    </div>
+                    <div class="text-2xl font-bold">{stats.recentActivityCount}</div>
+                    <p class="text-xs text-muted-foreground">Activities logged</p>
                 {/if}
-            </div>
-        </div>
-    {/if}
+            </CardContent>
+        </Card>
+    </div>
+
+    <!-- Main Dashboard Content Area -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Placeholder for Charts/Graphs -->
+        <Card class="lg:col-span-2">
+            <CardHeader>
+                <CardTitle>System Overview</CardTitle>
+                <CardDescription>Visual representation of key metrics (e.g., room usage, conflicts over time).</CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col items-center justify-center h-64">
+                <!-- Dummy SVG Bar Chart -->
+                <div class="flex flex-col items-center w-full h-full">
+                    <div class="mb-4 text-sm font-medium">Room Usage (Last 7 Days)</div>
+                    <svg class="w-full h-48" viewBox="0 0 400 200">
+                        <!-- Chart grid -->
+                        <line x1="40" y1="20" x2="40" y2="180" stroke="currentColor" stroke-opacity="0.1" />
+                        <line x1="40" y1="180" x2="380" y2="180" stroke="currentColor" stroke-opacity="0.1" />
+                        
+                        <!-- Y-axis labels -->
+                        <text x="35" y="180" text-anchor="end" class="text-[10px]" fill="currentColor" fill-opacity="0.6">0%</text>
+                        <text x="35" y="140" text-anchor="end" class="text-[10px]" fill="currentColor" fill-opacity="0.6">25%</text>
+                        <text x="35" y="100" text-anchor="end" class="text-[10px]" fill="currentColor" fill-opacity="0.6">50%</text>
+                        <text x="35" y="60" text-anchor="end" class="text-[10px]" fill="currentColor" fill-opacity="0.6">75%</text>
+                        <text x="35" y="20" text-anchor="end" class="text-[10px]" fill="currentColor" fill-opacity="0.6">100%</text>
+                        
+                        <!-- Horizontal guidelines -->
+                        <line x1="40" y1="140" x2="380" y2="140" stroke="currentColor" stroke-opacity="0.1" stroke-dasharray="2" />
+                        <line x1="40" y1="100" x2="380" y2="100" stroke="currentColor" stroke-opacity="0.1" stroke-dasharray="2" />
+                        <line x1="40" y1="60" x2="380" y2="60" stroke="currentColor" stroke-opacity="0.1" stroke-dasharray="2" />
+                        <line x1="40" y1="20" x2="380" y2="20" stroke="currentColor" stroke-opacity="0.1" stroke-dasharray="2" />
+                        
+                        <!-- Bars -->
+                        <rect x="60" y="80" width="30" height="100" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        <rect x="110" y="120" width="30" height="60" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        <rect x="160" y="60" width="30" height="120" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        <rect x="210" y="100" width="30" height="80" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        <rect x="260" y="40" width="30" height="140" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        <rect x="310" y="110" width="30" height="70" fill="hsl(var(--primary))" fill-opacity="0.8" rx="3" />
+                        
+                        <!-- X-axis labels -->
+                        <text x="75" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Mon</text>
+                        <text x="125" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Tue</text>
+                        <text x="175" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Wed</text>
+                        <text x="225" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Thu</text>
+                        <text x="275" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Fri</text>
+                        <text x="325" y="195" text-anchor="middle" class="text-[10px]" fill="currentColor" fill-opacity="0.6">Sat</text>
+                    </svg>
+                </div>
+            </CardContent>
+        </Card>
+
+        <!-- Placeholder for Recent Activity/Notifications -->
+        <Card>
+            <CardHeader>
+                <CardTitle class="flex items-center gap-2"><Bell class="w-5 h-5"/> Recent Notifications</CardTitle>
+                <CardDescription>Latest updates and system alerts.</CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-4">
+                {#if loading}
+                    {#each Array(3) as _}
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 rounded-full bg-muted animate-pulse"></div>
+                            <div class="space-y-2">
+                                <div class="w-32 h-4 rounded bg-muted animate-pulse"></div>
+                                <div class="w-24 h-3 rounded bg-muted animate-pulse"></div>
+                            </div>
+                        </div>
+                    {/each}
+                {:else}
+                    <!-- Dummy notifications -->
+                    <div class="flex items-start gap-3 pb-3 border-b">
+                        <div class="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+                            <AlertTriangle class="w-4 h-4 text-warning" />
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Schedule Conflict Detected</p>
+                            <p class="text-xs text-muted-foreground">Physics 101 and Chemistry Lab overlap in Room A102</p>
+                            <p class="mt-1 text-xs text-muted-foreground">10 minutes ago</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-3 pb-3 border-b">
+                        <div class="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+                            <Users class="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">New Teacher Registered</p>
+                            <p class="text-xs text-muted-foreground">Dr. Jane Smith joined Mathematics department</p>
+                            <p class="mt-1 text-xs text-muted-foreground">2 hours ago</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-3 pb-3">
+                        <div class="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+                            <Calendar class="w-4 h-4 text-success" />
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Schedule Update</p>
+                            <p class="text-xs text-muted-foreground">Computer Science 202 moved to Room B201</p>
+                            <p class="mt-1 text-xs text-muted-foreground">Yesterday</p>
+                        </div>
+                    </div>
+                    
+                    <Button variant="outline" size="sm" class="w-full mt-2">View All Notifications</Button>
+                {/if}
+            </CardContent>
+        </Card>
+    </div>
 </div>
 
 <!-- Schedule Dialog -->

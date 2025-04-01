@@ -130,9 +130,9 @@ export const NOTIFICATION_TYPES = {
 
 // User roles
 export const USER_ROLES = {
-    ADMIN: 'admin',
-    TEACHER: 'teacher',
-    STUDENT: 'student'
+    ADMIN: 'ADMIN',
+    TEACHER: 'TEACHER',
+    STUDENT: 'STUDENT'
 } as const;
 
 // Routes configuration

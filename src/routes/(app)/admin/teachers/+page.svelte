@@ -8,7 +8,7 @@
   import type { User } from '$lib/types';
   import { Button } from '$lib/components/ui/button';
   import { Users } from 'lucide-svelte';
-  import { USER_ROLES } from '$lib/config/constants';
+  import { USER_ROLES } from '$lib/config/index';
 
   let loading = true;
   let error: string | null = null;
@@ -32,11 +32,24 @@
     try {
       loading = true;
       error = null;
+      console.log('DEBUG - USER_ROLES.TEACHER:', USER_ROLES.TEACHER);
       const allUsers = await getUsers();
+      console.log('DEBUG - All Users:', allUsers);
+      
+      // Test authService direct call instead
+      try {
+        const teachersFromAuthService = await authService.getTeachers();
+        console.log('DEBUG - Teachers from AuthService:', teachersFromAuthService);
+      } catch (err) {
+        console.error('DEBUG - AuthService getTeachers failed:', err);
+      }
+      
       teachers = allUsers.filter(user => user.role === USER_ROLES.TEACHER) as User[];
+      console.log('DEBUG - Filtered Teachers:', teachers);
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load teachers';
-      toastStore.success(error);
+      console.error('DEBUG - loadTeachers error:', err);
+      toastStore.error(error);
     } finally {
       loading = false;
     }

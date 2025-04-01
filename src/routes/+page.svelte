@@ -546,11 +546,11 @@
             Intelligent timetabling solution for educational institutions of all sizes.
           </p>
           <div class="flex space-x-4">
-            <a href="#" class="text-secondary-400 hover:text-white transition-colors">
+            <a href="/" class="text-secondary-400 hover:text-white transition-colors">
               <span class="sr-only">Twitter</span>
               <!-- Social Icon -->
             </a>
-            <a href="#" class="text-secondary-400 hover:text-white transition-colors">
+            <a href="/" class="text-secondary-400 hover:text-white transition-colors">
               <span class="sr-only">LinkedIn</span>
               <!-- Social Icon -->
             </a>
@@ -559,36 +559,36 @@
         <div>
           <h4 class="mb-4 text-sm font-semibold uppercase tracking-wider text-secondary-200">Product</h4>
           <ul class="space-y-2">
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Features</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Pricing</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Integrations</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Roadmap</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Features</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Pricing</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Integrations</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Roadmap</a></li>
           </ul>
         </div>
         <div>
           <h4 class="mb-4 text-sm font-semibold uppercase tracking-wider text-secondary-200">Resources</h4>
           <ul class="space-y-2">
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Documentation</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Knowledge Base</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Webinars</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Support</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Documentation</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Knowledge Base</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Webinars</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Support</a></li>
           </ul>
         </div>
         <div>
           <h4 class="mb-4 text-sm font-semibold uppercase tracking-wider text-secondary-200">Company</h4>
           <ul class="space-y-2">
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">About</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Blog</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Careers</a></li>
-            <li><a href="#" class="text-secondary-400 hover:text-white transition-colors">Contact</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">About</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Blog</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Careers</a></li>
+            <li><a href="/" class="text-secondary-400 hover:text-white transition-colors">Contact</a></li>
           </ul>
         </div>
       </div>
       <div class="pt-8 border-t border-secondary-800 text-center md:flex md:justify-between md:text-left">
         <p>© 2024 TimeTablePro. All rights reserved.</p>
         <div class="mt-4 space-x-6 md:mt-0">
-          <a href="#" class="text-secondary-400 hover:text-white transition-colors">Privacy Policy</a>
-          <a href="#" class="text-secondary-400 hover:text-white transition-colors">Terms of Service</a>
+          <a href="/" class="text-secondary-400 hover:text-white transition-colors">Privacy Policy</a>
+          <a href="/" class="text-secondary-400 hover:text-white transition-colors">Terms of Service</a>
         </div>
       </div>
     </div>
