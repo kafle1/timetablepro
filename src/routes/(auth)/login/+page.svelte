@@ -25,6 +25,7 @@
     let passwordError: string | null = null;
     let redirectTo = $page.url.searchParams.get('redirect') || '';
     let demoLoading = false;
+    let isNavigating = false; // Guard flag
 
     // Basic email validation
     function isValidEmail(email: string): boolean {
@@ -65,11 +66,12 @@
         passwordError = null;
         
         // Validate the form
-        if (!validateForm()) {
+        if (!validateForm() || isNavigating) {
             return;
         }
 
         loading = true;
+        isNavigating = true; // Set guard flag
         
         try {
             // Authenticate user with email and password
@@ -91,12 +93,13 @@
             document.cookie = `ui_testing_auth=1; path=/; max-age=3600`;
             document.cookie = `auth_state=authenticated; path=/; max-age=3600`;
             
-            // Use direct location change instead of SvelteKit navigation to avoid loops
-            window.location.href = targetRoute;
+            // Use SvelteKit's goto for navigation
+            await goto(targetRoute, { replaceState: true });
         } catch (err: any) {
             console.error('Login error:', err);
             error = err.message || 'Failed to login. Please try again.';
             loading = false;
+            isNavigating = false; // Reset guard flag on error
         }
     }
     
@@ -115,7 +118,10 @@
     // Handle demo account login
     async function loginWithDemo(type: 'admin' | 'teacher' | 'student') {
         error = null;
+        if (isNavigating) return; // Check guard flag
+
         demoLoading = true;
+        isNavigating = true; // Set guard flag
         
         try {
             // Login with demo account type
@@ -135,13 +141,14 @@
             // Redirect to appropriate dashboard or redirect URL
             const targetRoute = redirectTo || getDashboardRoute(user.role);
             
-            // Use window.location for navigation to avoid SvelteKit redirection
+            // Use SvelteKit's goto for navigation
             console.log(`Demo login successful, navigating to: ${targetRoute}`);
-            window.location.href = targetRoute;
+            await goto(targetRoute, { replaceState: true });
         } catch (err: any) {
             console.error('Demo login error:', err);
             error = `Failed to login with demo account: ${err.message}`;
             demoLoading = false;
+            isNavigating = false; // Reset guard flag on error
         }
     }
 

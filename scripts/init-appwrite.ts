@@ -48,7 +48,7 @@ async function initializeDatabase() {
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.USERS,
                 'Users',
-                [Permission.read(Role.member())]
+                [Permission.read(Role.any())]
             );
             
             // Add attributes
@@ -73,7 +73,8 @@ async function initializeDatabase() {
             await databases.createCollection(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.ROOMS,
-                'Rooms'
+                'Rooms',
+                [Permission.read(Role.any())]
             );
             
             // Add attributes
@@ -95,7 +96,8 @@ async function initializeDatabase() {
             await databases.createCollection(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.SCHEDULES,
-                'Schedules'
+                'Schedules',
+                [Permission.read(Role.any())]
             );
             
             // Add attributes
@@ -123,7 +125,8 @@ async function initializeDatabase() {
             await databases.createCollection(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.TEACHER_AVAILABILITY,
-                'Teacher Availability'
+                'Teacher Availability',
+                [Permission.read(Role.any())]
             );
             
             // Add attributes
@@ -147,7 +150,8 @@ async function initializeDatabase() {
             await databases.createCollection(
                 DB_CONFIG.databaseId,
                 DB_CONFIG.collections.NOTIFICATIONS,
-                'Notifications'
+                'Notifications',
+                [Permission.read(Role.any())]
             );
             
             // Add attributes
