@@ -1,5 +1,6 @@
 import { redirect, type Handle } from '@sveltejs/kit';
-import { ROUTES, USER_ROLES } from '$lib/config';
+import { ROUTES } from '$lib/config';
+import { authService } from '$lib/services/auth';
 import type { User } from '$lib/types';
 
 // Set to true for debug logging in development
@@ -88,40 +89,33 @@ export const handle: Handle = async ({ event, resolve }) => {
     logDebug('Internal route or asset, bypassing auth');
     return resolve(event);
   }
-  
-  // Check for cookies
-  const cookies = event.request.headers.get('cookie') || '';
-  
-  // Always use mock user for development/testing
-  // This prevents auth issues during development
-  const mockUser: User = {
-    $id: 'mock-admin',
-    userId: 'mock-admin',
-    email: 'admin@timetablepro.com',
-    name: 'Admin User',
-    role: 'ADMIN',
-    isActive: true,
-    emailVerified: true,
-    preferences: {},
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
-    $collectionId: 'users',
-    $databaseId: 'timetablepro',
-    $createdAt: new Date().toISOString(),
-    $updatedAt: new Date().toISOString(),
-    $permissions: []
-  } as User;
-  
-  // Set mock user for all requests in development
-  event.locals.user = mockUser;
-  logDebug('Using mock user for development');
-  
-  // For login/register pages, let them through without redirecting
-  if (path === ROUTES.LOGIN || path === ROUTES.REGISTER) {
-    logDebug('Accessing auth page, no redirect');
+
+  // Check if it's a public route
+  if (isPublicRoute(path)) {
+    logDebug('Public route, bypassing auth');
     return resolve(event);
   }
-  
-  // For all other routes, user is already authenticated with mock user
-  return resolve(event);
+
+  try {
+    // Try to get user from auth service
+    const user = await authService.getCurrentUser();
+    
+    if (!user && !isPublicRoute(path)) {
+      logDebug('No user found, redirecting to login');
+      throw redirect(302, `${ROUTES.LOGIN}?redirect=${encodeURIComponent(path)}`);
+    }
+
+    // Set user in locals if found
+    if (user) {
+      event.locals.user = user;
+    }
+
+    return resolve(event);
+  } catch (error) {
+    logDebug('Error handling request:', error);
+    if (!isPublicRoute(path)) {
+      throw redirect(302, `${ROUTES.LOGIN}?redirect=${encodeURIComponent(path)}`);
+    }
+    return resolve(event);
+  }
 }; 

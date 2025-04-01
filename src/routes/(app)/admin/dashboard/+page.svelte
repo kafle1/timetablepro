@@ -14,6 +14,7 @@
     import ScheduleCalendar from '$lib/components/ScheduleCalendar.svelte';
     import { goto } from '$app/navigation';
     import { authService } from '$lib/services/auth';
+    import { ROUTES } from '$lib/config';
 
     let loading = true;
     let error = '';
@@ -49,11 +50,12 @@
                 return;
             }
             
-            // Load statistics
-            await loadStatistics();
-            
-            // Load recent items
-            await loadRecentSchedules();
+            // Load all data in parallel
+            await Promise.all([
+                loadStatistics(),
+                loadRecentSchedules(),
+                loadData()
+            ]);
         } catch (err: any) {
             error = err.message || 'Failed to load dashboard data';
             console.error('Error loading dashboard data:', err);
@@ -66,7 +68,7 @@
         try {
             // Get room count
             const roomsResponse = await roomService.list();
-            stats.totalRooms = roomsResponse.total;
+            stats.totalRooms = roomsResponse.documents.length;
             
             // Get user counts
             const usersResponse = await authService.getUsers();
@@ -76,13 +78,14 @@
             
             // Get schedule counts
             const schedulesResponse = await scheduleService.listSchedules();
-            stats.totalSchedules = schedulesResponse.total;
+            stats.totalSchedules = schedulesResponse.documents.length;
             const documents = Array.isArray(schedulesResponse.documents) ? schedulesResponse.documents : [];
             stats.conflictingSchedules = documents.filter(
                 (schedule: any) => schedule.conflictStatus === 'conflict'
             ).length;
         } catch (err: any) {
             console.error('Error loading statistics:', err);
+            error = err.message || 'Failed to load statistics';
         }
     }
 
@@ -90,20 +93,16 @@
         try {
             const response = await scheduleService.listSchedules();
             const documents = Array.isArray(response.documents) ? response.documents : [];
-            recentSchedules = documents.slice(0, 5) as Schedule[];
+            recentSchedules = documents
+                .sort((a: any, b: any) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+                .slice(0, 5) as Schedule[];
         } catch (err: any) {
             console.error('Error loading recent schedules:', err);
+            error = err.message || 'Failed to load recent schedules';
         }
     }
 
-    function navigateTo(path: string) {
-        goto(path);
-    }
-
     async function loadData() {
-        loading = true;
-        error = '';
-
         try {
             const [schedulesData, roomsData] = await Promise.all([
                 scheduleService.listSchedules(),
@@ -118,23 +117,23 @@
             // Calculate analytics
             totalSchedules = schedules.length;
             totalRooms = rooms.length;
-            conflictCount = Array.isArray(schedules) ? 
-                schedules.filter(s => s.conflictStatus === 'conflict').length : 0;
+            conflictCount = schedules.filter(s => s.conflictStatus === 'conflict').length;
 
             // Calculate room utilization
-            roomUtilization = Array.isArray(rooms) ? rooms.reduce((acc, room) => {
-                const roomSchedules = Array.isArray(schedules) ? 
-                    schedules.filter(s => s.roomId === room.$id) : [];
+            roomUtilization = rooms.reduce((acc, room) => {
+                const roomSchedules = schedules.filter(s => s.roomId === room.$id);
                 const totalMinutes = roomSchedules.reduce((sum, s) => sum + s.duration, 0);
                 acc[room.$id] = Math.round((totalMinutes / (24 * 60)) * 100);
                 return acc;
-            }, {} as Record<string, number>) : {};
+            }, {} as Record<string, number>);
         } catch (err) {
             error = 'Failed to load dashboard data';
             console.error('Error loading dashboard data:', err);
-        } finally {
-            loading = false;
         }
+    }
+
+    function navigateTo(path: string) {
+        goto(path);
     }
 
     function handleScheduleClick(schedule: Schedule) {
@@ -191,7 +190,7 @@
                 </div>
                 <button 
                     class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    on:click={() => navigateTo('/rooms')}
+                    on:click={() => navigateTo(ROUTES.ROOMS)}
                 >
                     Manage Rooms
                 </button>
@@ -211,7 +210,7 @@
                 </div>
                 <button 
                     class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    on:click={() => navigateTo('/teachers')}
+                    on:click={() => navigateTo(ROUTES.TEACHERS)}
                 >
                     Manage Teachers
                 </button>
@@ -233,7 +232,7 @@
                 </div>
                 <button 
                     class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    on:click={() => navigateTo('/students')}
+                    on:click={() => navigateTo(ROUTES.STUDENTS)}
                 >
                     Manage Students
                 </button>
@@ -253,7 +252,7 @@
                 </div>
                 <button 
                     class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                    on:click={() => navigateTo('/schedule')}
+                    on:click={() => navigateTo(ROUTES.SCHEDULES)}
                 >
                     Manage Schedules
                 </button>
@@ -273,7 +272,7 @@
                 </div>
                 <button 
                     class="w-full px-4 py-2 mt-4 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    on:click={() => navigateTo('/schedule?conflicts=true')}
+                    on:click={() => navigateTo(ROUTES.SCHEDULES + '?conflicts=true')}
                 >
                     View Conflicts
                 </button>

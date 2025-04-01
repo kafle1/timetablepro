@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount, onDestroy } from 'svelte';
-	import { userStore } from '$lib/stores/userStore';
+	import { userStore } from '$lib/stores/user';
 	import { Toasts } from "$lib/components/ui/toast";
 	import { browser } from '$app/environment';
 	import { navigating } from '$app/stores';

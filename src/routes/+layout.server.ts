@@ -17,7 +17,7 @@ const protectedRoutes = [
 ];
 
 const roleBasedRoutes = {
-    [USER_ROLES.ADMIN]: ['/admin', '/rooms', '/schedules', '/teachers', '/students'],
+    [USER_ROLES.ADMIN]: ['/admin', '/admin/rooms', '/admin/schedules', '/admin/teachers', '/admin/students'],
     [USER_ROLES.TEACHER]: ['/teacher', '/schedules', '/availability'],
     [USER_ROLES.STUDENT]: ['/student', '/schedules']
 };

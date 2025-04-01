@@ -22,33 +22,43 @@
     },
     {
       title: 'Schedule',
-      href: '/schedule',
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.SCHEDULES
+        : $userStore?.role === USER_ROLES.TEACHER
+          ? ROUTES.TEACHER.SCHEDULES
+          : ROUTES.STUDENT.SCHEDULES,
       icon: Calendar,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     },
     {
       title: 'Teachers',
-      href: ROUTES.TEACHERS,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.TEACHERS
+        : ROUTES.STUDENT.TEACHERS,
       icon: Users,
-      roles: [USER_ROLES.ADMIN]
+      roles: [USER_ROLES.ADMIN, USER_ROLES.STUDENT]
     },
     {
       title: 'Students',
-      href: ROUTES.STUDENTS,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.STUDENTS
+        : ROUTES.TEACHER.STUDENTS,
       icon: Users,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
     },
     {
       title: 'Rooms',
-      href: ROUTES.ROOMS,
+      href: ROUTES.ADMIN.ROOMS,
       icon: Building2,
       roles: [USER_ROLES.ADMIN]
     },
     {
       title: 'Availability',
-      href: ROUTES.AVAILABILITY,
+      href: $userStore?.role === USER_ROLES.ADMIN
+        ? ROUTES.ADMIN.AVAILABILITY
+        : ROUTES.TEACHER.AVAILABILITY,
       icon: Calendar,
-      roles: [USER_ROLES.TEACHER]
+      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER]
     }
   ];
 

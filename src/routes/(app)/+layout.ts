@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
-import { ROUTES } from '$lib/config';
+import { ROUTES, USER_ROLES } from '$lib/config';
 import { authService } from '$lib/services/auth';
 import { browser } from '$app/environment';
 import { dev } from '$app/environment';

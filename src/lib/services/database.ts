@@ -12,7 +12,7 @@ const SCHEDULES_COLLECTION_ID = 'schedules';
 const AVAILABILITY_COLLECTION_ID = 'availability';
 
 // Types
-type UserData = Omit<User, keyof Models.Document>;
+export type UserData = Omit<User, keyof Models.Document>;
 type RoomData = Omit<Room, keyof Models.Document>;
 type ScheduleData = {
     className: string;

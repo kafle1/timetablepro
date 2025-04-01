@@ -130,9 +130,9 @@ export const NOTIFICATION_TYPES = {
 
 // User roles
 export const USER_ROLES = {
-    ADMIN: 'ADMIN',
-    TEACHER: 'TEACHER',
-    STUDENT: 'STUDENT'
+    ADMIN: 'admin',
+    TEACHER: 'teacher',
+    STUDENT: 'student'
 } as const;
 
 // Routes configuration
@@ -148,12 +148,28 @@ export const ROUTES = {
     TEACHER_DASHBOARD: '/teacher/dashboard',
     STUDENT_DASHBOARD: '/student/dashboard',
 
-    // Resource routes
-    ROOMS: '/rooms',
-    SCHEDULES: '/schedules',
-    TEACHERS: '/teachers',
-    STUDENTS: '/students',
-    AVAILABILITY: '/availability',
+    // Admin routes
+    ADMIN: {
+        ROOMS: '/admin/rooms',
+        SCHEDULES: '/admin/schedules',
+        TEACHERS: '/admin/teachers',
+        STUDENTS: '/admin/students',
+        AVAILABILITY: '/admin/availability',
+        REPORTS: '/admin/reports'
+    },
+
+    // Teacher routes
+    TEACHER: {
+        SCHEDULES: '/teacher/schedules',
+        STUDENTS: '/teacher/students',
+        AVAILABILITY: '/teacher/availability'
+    },
+
+    // Student routes
+    STUDENT: {
+        SCHEDULES: '/student/schedules',
+        TEACHERS: '/student/teachers'
+    },
 
     // User routes
     PROFILE: '/profile',

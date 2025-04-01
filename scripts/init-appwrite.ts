@@ -1,260 +1,177 @@
-import { Client, Databases, ID, Permission, Role } from 'node-appwrite';
-import * as dotenv from 'dotenv';
+import { Client, Databases } from 'node-appwrite';
+import dotenv from 'dotenv';
 
+// Load environment variables
 dotenv.config();
 
 // Initialize Appwrite client
-const client = new Client()
-    .setEndpoint(process.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-    .setProject(process.env.VITE_APPWRITE_PROJECT_ID || '')
-    .setKey(process.env.APPWRITE_API_KEY || '');
+const client = new Client();
 
+try {
+    const endpoint = process.env.VITE_APPWRITE_ENDPOINT;
+    const projectId = process.env.VITE_APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
+
+    if (!endpoint || !projectId || !apiKey) {
+        throw new Error('Missing Appwrite configuration');
+    }
+
+    client
+        .setEndpoint(endpoint)
+        .setProject(projectId)
+        .setKey(apiKey);
+} catch (error) {
+    console.error('Error initializing Appwrite client:', error);
+    throw error;
+}
+
+// Create database instance
 const databases = new Databases(client);
 
-async function initializeAppwrite() {
+// Database and collection configuration
+const DB_CONFIG = {
+    databaseId: process.env.VITE_APPWRITE_DATABASE_ID || 'timetablepro',
+    collections: {
+        USERS: process.env.VITE_APPWRITE_USERS_COLLECTION_ID || 'users',
+        ROOMS: process.env.VITE_APPWRITE_ROOMS_COLLECTION_ID || 'rooms',
+        SCHEDULES: process.env.VITE_APPWRITE_SCHEDULES_COLLECTION_ID || 'schedules',
+        NOTIFICATIONS: process.env.VITE_APPWRITE_NOTIFICATIONS_COLLECTION_ID || 'notifications',
+        TEACHER_AVAILABILITY: process.env.VITE_APPWRITE_TEACHER_AVAILABILITY_COLLECTION_ID || 'teacher_availability'
+    }
+};
+
+async function initializeDatabase() {
     try {
-        console.log('Starting Appwrite initialization...');
-        
-        // Create database if it doesn't exist
-        const databaseId = process.env.VITE_APPWRITE_DATABASE_ID || 'timetablepro';
-        
+        // Create Users collection
         try {
-            await databases.create(databaseId, 'TimetablePro');
-            console.log(`✅ Database '${databaseId}' created successfully`);
+            await databases.createCollection(
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.USERS,
+                'Users'
+            );
+            
+            // Add attributes
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'userId', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'email', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'name', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'role', 255, true);
+            await databases.createBooleanAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'isActive', true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'subject', 255, false);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.USERS, 'preferences', 255, false);
+
+            console.log('Users collection created successfully');
         } catch (error: any) {
-            if (error?.code !== 409) {
-                console.error('Database creation error:', error);
+            if (error.code !== 409) {
                 throw error;
-            } else {
-                console.log(`ℹ️ Database '${databaseId}' already exists`);
             }
+            console.log('Users collection already exists');
         }
 
-        // Create users collection
-        await createCollection(databaseId, 'users', 'Users');
-        await createStringAttribute(databaseId, 'users', 'userId', 255, true);
-        await createEmailAttribute(databaseId, 'users', 'email', true);
-        await createStringAttribute(databaseId, 'users', 'name', 255, true);
-        await createStringAttribute(databaseId, 'users', 'role', 20, true);
-        await createStringAttribute(databaseId, 'users', 'availability', 10000, false, null, true);
-        await createIndex(databaseId, 'users', 'email_idx', 'key', ['email']);
-        
-        // Create rooms collection
-        await createCollection(databaseId, 'rooms', 'Rooms');
-        await createStringAttribute(databaseId, 'rooms', 'roomName', 255, true);
-        await createIntegerAttribute(databaseId, 'rooms', 'capacity', true);
-        await createStringAttribute(databaseId, 'rooms', 'building', 255, true);
-        await createIntegerAttribute(databaseId, 'rooms', 'floor', true);
-        await createStringAttribute(databaseId, 'rooms', 'features', 10000, false, null, true);
-        await createBooleanAttribute(databaseId, 'rooms', 'isActive', true);
-        
-        // Create schedules collection
-        await createCollection(databaseId, 'schedules', 'Schedules');
-        await createStringAttribute(databaseId, 'schedules', 'className', 255, true);
-        await createIntegerAttribute(databaseId, 'schedules', 'duration', true);
-        await createStringAttribute(databaseId, 'schedules', 'roomId', 255, true);
-        await createStringAttribute(databaseId, 'schedules', 'teacherId', 255, true);
-        await createStringAttribute(databaseId, 'schedules', 'subject', 255, true);
-        await createStringAttribute(databaseId, 'schedules', 'startTime', 255, true);
-        await createStringAttribute(databaseId, 'schedules', 'endTime', 255, true);
-        await createStringAttribute(databaseId, 'schedules', 'dayOfWeek', 20, true);
-        await createStringAttribute(databaseId, 'schedules', 'recurrence', 20, true);
-        await createStringAttribute(databaseId, 'schedules', 'conflictStatus', 20, false);
-        await createIndex(databaseId, 'schedules', 'room_idx', 'key', ['roomId']);
-        await createIndex(databaseId, 'schedules', 'teacher_idx', 'key', ['teacherId']);
-        
-        // Create notifications collection
-        await createCollection(databaseId, 'notifications', 'Notifications');
-        await createStringAttribute(databaseId, 'notifications', 'userId', 255, true);
-        await createStringAttribute(databaseId, 'notifications', 'title', 255, true);
-        await createStringAttribute(databaseId, 'notifications', 'message', 1000, true);
-        await createStringAttribute(databaseId, 'notifications', 'type', 20, true);
-        await createBooleanAttribute(databaseId, 'notifications', 'isRead', true);
-        await createIndex(databaseId, 'notifications', 'user_idx', 'key', ['userId']);
+        // Create Rooms collection
+        try {
+            await databases.createCollection(
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.ROOMS,
+                'Rooms'
+            );
+            
+            // Add attributes
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.ROOMS, 'name', 255, true);
+            await databases.createIntegerAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.ROOMS, 'capacity', true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.ROOMS, 'type', 255, true);
+            await databases.createBooleanAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.ROOMS, 'isActive', true);
 
-        console.log('✅ Appwrite initialization completed successfully');
+            console.log('Rooms collection created successfully');
+        } catch (error: any) {
+            if (error.code !== 409) {
+                throw error;
+            }
+            console.log('Rooms collection already exists');
+        }
+
+        // Create Schedules collection
+        try {
+            await databases.createCollection(
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.SCHEDULES,
+                'Schedules'
+            );
+            
+            // Add attributes
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'className', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'subject', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'teacherId', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'roomId', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'startTime', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'endTime', 255, true);
+            await databases.createIntegerAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'duration', true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'dayOfWeek', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'recurrence', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.SCHEDULES, 'conflictStatus', 255, false);
+
+            console.log('Schedules collection created successfully');
+        } catch (error: any) {
+            if (error.code !== 409) {
+                throw error;
+            }
+            console.log('Schedules collection already exists');
+        }
+
+        // Create Teacher Availability collection
+        try {
+            await databases.createCollection(
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.TEACHER_AVAILABILITY,
+                'Teacher Availability'
+            );
+            
+            // Add attributes
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'teacherId', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'dayOfWeek', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'startTime', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'endTime', 255, true);
+            await databases.createBooleanAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'isAvailable', true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.TEACHER_AVAILABILITY, 'note', 1000, false);
+
+            console.log('Teacher Availability collection created successfully');
+        } catch (error: any) {
+            if (error.code !== 409) {
+                throw error;
+            }
+            console.log('Teacher Availability collection already exists');
+        }
+
+        // Create Notifications collection
+        try {
+            await databases.createCollection(
+                DB_CONFIG.databaseId,
+                DB_CONFIG.collections.NOTIFICATIONS,
+                'Notifications'
+            );
+            
+            // Add attributes
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'userId', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'title', 255, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'message', 1000, true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'type', 255, true);
+            await databases.createBooleanAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'isRead', true);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'relatedEntityId', 255, false);
+            await databases.createStringAttribute(DB_CONFIG.databaseId, DB_CONFIG.collections.NOTIFICATIONS, 'relatedEntityType', 255, false);
+
+            console.log('Notifications collection created successfully');
+        } catch (error: any) {
+            if (error.code !== 409) {
+                throw error;
+            }
+            console.log('Notifications collection already exists');
+        }
+
+        console.log('Database initialization completed successfully');
     } catch (error) {
-        console.error('❌ Failed to initialize Appwrite:', error);
+        console.error('Error initializing database:', error);
         throw error;
     }
 }
 
-// Helper functions
-async function createCollection(databaseId: string, collectionId: string, name: string) {
-    try {
-        await databases.createCollection(
-            databaseId,
-            collectionId,
-            name,
-            [
-                Permission.read(Role.any()),
-                Permission.create(Role.users()),
-                Permission.update(Role.users()),
-                Permission.delete(Role.users())
-            ]
-        );
-        console.log(`✅ Collection '${collectionId}' created successfully`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Collection '${collectionId}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Collection '${collectionId}' already exists`);
-        }
-    }
-}
-
-async function createStringAttribute(
-    databaseId: string,
-    collectionId: string,
-    key: string,
-    size: number,
-    required: boolean,
-    defaultValue: string | null = null,
-    array: boolean = false
-) {
-    try {
-        await databases.createStringAttribute(
-            databaseId,
-            collectionId,
-            key,
-            size,
-            required,
-            defaultValue,
-            array
-        );
-        console.log(`✅ String attribute '${key}' created successfully in '${collectionId}'`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Attribute '${key}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Attribute '${key}' already exists in '${collectionId}'`);
-        }
-    }
-}
-
-async function createEmailAttribute(
-    databaseId: string,
-    collectionId: string,
-    key: string,
-    required: boolean,
-    defaultValue: string | null = null,
-    array: boolean = false
-) {
-    try {
-        await databases.createEmailAttribute(
-            databaseId,
-            collectionId,
-            key,
-            required,
-            defaultValue,
-            array
-        );
-        console.log(`✅ Email attribute '${key}' created successfully in '${collectionId}'`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Attribute '${key}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Attribute '${key}' already exists in '${collectionId}'`);
-        }
-    }
-}
-
-async function createIntegerAttribute(
-    databaseId: string,
-    collectionId: string,
-    key: string,
-    required: boolean,
-    min: number | null = null,
-    max: number | null = null,
-    defaultValue: number | null = null,
-    array: boolean = false
-) {
-    try {
-        await databases.createIntegerAttribute(
-            databaseId,
-            collectionId,
-            key,
-            required,
-            min,
-            max,
-            defaultValue,
-            array
-        );
-        console.log(`✅ Integer attribute '${key}' created successfully in '${collectionId}'`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Attribute '${key}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Attribute '${key}' already exists in '${collectionId}'`);
-        }
-    }
-}
-
-async function createBooleanAttribute(
-    databaseId: string,
-    collectionId: string,
-    key: string,
-    required: boolean,
-    defaultValue: boolean | null = null,
-    array: boolean = false
-) {
-    try {
-        await databases.createBooleanAttribute(
-            databaseId,
-            collectionId,
-            key,
-            required,
-            defaultValue,
-            array
-        );
-        console.log(`✅ Boolean attribute '${key}' created successfully in '${collectionId}'`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Attribute '${key}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Attribute '${key}' already exists in '${collectionId}'`);
-        }
-    }
-}
-
-async function createIndex(
-    databaseId: string,
-    collectionId: string,
-    key: string,
-    type: string,
-    attributes: string[]
-) {
-    try {
-        await databases.createIndex(
-            databaseId,
-            collectionId,
-            key,
-            type,
-            attributes
-        );
-        console.log(`✅ Index '${key}' created successfully in '${collectionId}'`);
-    } catch (error: any) {
-        if (error?.code !== 409) {
-            console.error(`Index '${key}' creation error:`, error);
-            throw error;
-        } else {
-            console.log(`ℹ️ Index '${key}' already exists in '${collectionId}'`);
-        }
-    }
-}
-
-// Run the initialization
-initializeAppwrite()
-    .then(() => {
-        console.log('Initialization completed successfully');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Initialization failed:', error);
-        process.exit(1);
-    }); 
+// Run initialization
+initializeDatabase().catch(console.error); 

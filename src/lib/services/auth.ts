@@ -93,75 +93,124 @@ class AuthService {
   }
 
   /**
-   * Create a new account
+   * Get current user
    */
-  async createAccount(params: CreateUserParams): Promise<User> {
+  async getCurrentUser(): Promise<User | null> {
     try {
-      const { email, password, name, role } = params;
-      
-      // Validate password
-      if (!this.validatePassword(password)) {
-        throw new Error('Password does not meet security requirements');
+      if (!browser) return null;
+
+      // Get current session
+      let session;
+      try {
+        session = await account.getSession('current');
+      } catch (error) {
+        if (error instanceof AppwriteException && error.code === 401) {
+          return null;
+        }
+        throw error;
       }
 
-      // Create account in Appwrite
-      const newAccount = await account.create(
-        ID.unique(),
-        email,
-        password,
-        name
-      );
-      
-      // Create user document in database
-      const userData = {
-        userId: newAccount.$id,
-        email: newAccount.email,
-        name: newAccount.name,
-        role: role,
-        isActive: true,
-        emailVerified: false,
-        preferences: {},
-        createdAt: new Date().toISOString(),
-        lastLoginAt: null
-      };
-      
-      const newUser = await databases.createDocument(
+      if (!session) return null;
+
+      // Get user data from database
+      const userData = await databases.listDocuments(
         DB_CONFIG.databaseId,
         DB_CONFIG.collections.USERS,
-        newAccount.$id,
-        userData
+        [Query.equal('userId', session.userId)]
       );
-      
-      return newUser as unknown as User;
-    } catch (error: any) {
-      console.error('Error creating account:', error);
-      
-      // Reformat error to be more user-friendly
-      const authError: AuthError = new Error(
-        error.message || 'Failed to create account'
-      );
-      
-      if (error instanceof AppwriteException) {
-        authError.code = error.code;
-        authError.type = error.type;
-        
-        // Handle duplicate email
-        if (error.code === 409) {
-          authError.message = 'An account with this email already exists';
-        }
+
+      if (userData.documents.length === 0) {
+        return null;
       }
-      
-      throw authError;
+
+      return userData.documents[0] as unknown as User;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
     }
   }
-  
+
+  /**
+   * Login with email and password
+   */
+  async login(email: string, password: string): Promise<User> {
+    try {
+      // Create email session
+      await account.createEmailSession(email, password);
+
+      // Get user data
+      const user = await this.getCurrentUser();
+      if (!user) {
+        throw new Error('User not found in database');
+      }
+
+      return user;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.code === 401) {
+        throw new Error('Invalid email or password');
+      } else if (error.code === 429) {
+        throw new Error('Too many login attempts. Please try again later.');
+      }
+      throw new Error(error.message || 'Failed to login');
+    }
+  }
+
   /**
    * Register a new user
    */
-  async register(email: string, password: string, name: string, role: keyof typeof USER_ROLES): Promise<User> {
-    return this.createAccount({ email, password, name, role });
+  async register(email: string, password: string, name: string, role: string): Promise<User> {
+    try {
+      // Create user account
+      const userAccount = await account.create(ID.unique(), email, password, name);
+
+      // Create user document in database
+      const userDoc = await databases.createDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        ID.unique(),
+        {
+          userId: userAccount.$id,
+          email,
+          name,
+          role,
+          isActive: true,
+          emailVerified: userAccount.emailVerification,
+          preferences: {}
+        }
+      );
+
+      return userDoc as unknown as User;
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw new Error(error.message || 'Failed to register');
+    }
   }
-  
+
+  /**
+   * Logout current user
+   */
+  async logout(): Promise<void> {
+    try {
+      await account.deleteSession('current');
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordReset(email: string): Promise<void> {
+    try {
+      await account.createRecovery(email, `${window.location.origin}/auth/reset-password`);
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  }
+
   /**
    * Generate a JWT token
    */
@@ -225,149 +274,84 @@ class AuthService {
   }
 
   /**
-   * Login with email and password
-   */
-  async login(email: string, password: string): Promise<User> {
-    try {
-      // For demo, we'll use hardcoded users
-      // In a real app, this would verify against a database
-      const account = DEMO_ACCOUNTS[email];
-      
-      if (!account || account.password !== password) {
-        throw new Error('Invalid email or password');
-      }
-      
-      // Create user object
-      const user: User = {
-        $id: `user-${Date.now()}`,
-        userId: `user-${Date.now()}`,
-        email,
-        name: account.name,
-        role: account.role,
-        isActive: true,
-        emailVerified: true,
-        preferences: {},
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-        $collectionId: 'users',
-        $databaseId: 'timetablepro',
-        $createdAt: new Date().toISOString(),
-        $updatedAt: new Date().toISOString(),
-        $permissions: []
-      };
-      
-      // Generate token
-      const token = this.generateToken(user);
-      
-      // Set token in cookie and session storage for persistence
-      if (browser) {
-        // Set HTTP-only cookie for security
-        document.cookie = `jwt=${token}; path=/; max-age=${TOKEN_EXPIRATION}; SameSite=Lax`;
-        
-        // Store in session storage for UI testing mode
-        sessionStorage.setItem('ui_testing_auth_token', token);
-        console.log('Auth token set in cookie and session storage');
-      }
-      
-      return user;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      
-      const authError: AuthError = new Error(
-        error.message || 'Failed to login'
-      );
-      
-      throw authError;
-    }
-  }
-  
-  /**
    * Login with demo account
    */
   async loginWithDemo(type: 'admin' | 'teacher' | 'student'): Promise<User> {
-    let email: string;
-    
-    switch (type) {
-      case 'admin':
-        email = 'admin@timetablepro.com';
-        break;
-      case 'teacher':
-        email = 'teacher@timetablepro.com';
-        break;
-      case 'student':
-        email = 'student@timetablepro.com';
-        break;
-      default:
-        throw new Error('Invalid demo account type');
-    }
-    
-    return this.login(email, DEMO_ACCOUNTS[email].password);
-  }
-  
-  /**
-   * Get the current logged-in user
-   */
-  async getCurrentUser(): Promise<User | null> {
     try {
-      if (!browser) return null;
+      let email: string;
       
-      // Get token from cookie
-      const cookies = document.cookie.split(';');
-      const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('jwt='));
-      
-      if (!tokenCookie) {
-        return null;
+      switch (type) {
+        case 'admin':
+          email = 'admin@timetablepro.com';
+          break;
+        case 'teacher':
+          email = 'teacher@timetablepro.com';
+          break;
+        case 'student':
+          email = 'student@timetablepro.com';
+          break;
+        default:
+          throw new Error('Invalid demo account type');
       }
-      
-      // Parse token
-      const token = tokenCookie.split('=')[1].trim();
-      const payload = this.verifyToken(token);
-      
-      if (!payload) {
-        return null;
+
+      // First try to login
+      try {
+        await account.createEmailSession(email, DEMO_ACCOUNTS[email].password);
+      } catch (error) {
+        // If login fails, create the account
+        await this.createDemoAccount(email);
+        // Try login again
+        await account.createEmailSession(email, DEMO_ACCOUNTS[email].password);
       }
-      
-      // Create user from token
-      const user: User = {
-        $id: payload.id,
-        userId: payload.id,
-        email: payload.email,
-        name: payload.name,
-        role: payload.role,
-        isActive: true,
-        emailVerified: true,
-        preferences: {},
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-        $collectionId: 'users',
-        $databaseId: 'timetablepro',
-        $createdAt: new Date().toISOString(),
-        $updatedAt: new Date().toISOString(),
-        $permissions: []
-      };
-      
+
+      // Get user data
+      const user = await this.getCurrentUser();
+      if (!user) {
+        throw new Error('Failed to get user data after login');
+      }
+
       return user;
     } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
+      console.error('Demo login error:', error);
+      throw error;
     }
   }
 
   /**
-   * Logout current user
+   * Create a demo account
    */
-  async logout(): Promise<void> {
+  private async createDemoAccount(email: string): Promise<void> {
     try {
-      if (!browser) return;
-      
-      // Clear token cookie
-      document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-      
-      // Also clear session storage
-      sessionStorage.removeItem('ui_testing_auth_token');
-      console.log('Auth token cleared from cookie and session storage');
+      const accountData = DEMO_ACCOUNTS[email];
+      if (!accountData) {
+        throw new Error('Invalid demo account email');
+      }
+
+      // Create user account
+      const userAccount = await account.create(
+        ID.unique(),
+        email,
+        accountData.password,
+        accountData.name
+      );
+
+      // Create user document in database
+      await databases.createDocument(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        ID.unique(),
+        {
+          userId: userAccount.$id,
+          email,
+          name: accountData.name,
+          role: accountData.role,
+          isActive: true,
+          emailVerified: true,
+          preferences: {}
+        }
+      );
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Error creating demo account:', error);
       throw error;
     }
   }
@@ -386,18 +370,6 @@ class AuthService {
       return user as unknown as User;
     } catch (error) {
       console.error('Error getting user by ID:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Send password reset email
-   */
-  async sendPasswordReset(email: string): Promise<void> {
-    try {
-      await account.createRecovery(email, `${window.location.origin}/reset-password`);
-    } catch (error) {
-      console.error('Error sending password reset:', error);
       throw error;
     }
   }
@@ -439,61 +411,12 @@ class AuthService {
    */
   async getUsers(): Promise<User[]> {
     try {
-      // In a real implementation, we would fetch from the database
-      // For demo, we'll return a mock list of users
-      return [
-        {
-          $id: 'admin-1',
-          userId: 'admin-1',
-          email: 'admin@timetablepro.com',
-          name: 'Admin User',
-          role: 'ADMIN',
-          isActive: true,
-          emailVerified: true,
-          preferences: {},
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          $collectionId: 'users',
-          $databaseId: 'timetablepro',
-          $createdAt: new Date().toISOString(),
-          $updatedAt: new Date().toISOString(),
-          $permissions: []
-        },
-        {
-          $id: 'teacher-1',
-          userId: 'teacher-1',
-          email: 'teacher@timetablepro.com',
-          name: 'Teacher User',
-          role: 'TEACHER',
-          isActive: true,
-          emailVerified: true,
-          preferences: {},
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          $collectionId: 'users',
-          $databaseId: 'timetablepro',
-          $createdAt: new Date().toISOString(),
-          $updatedAt: new Date().toISOString(),
-          $permissions: []
-        },
-        {
-          $id: 'student-1',
-          userId: 'student-1',
-          email: 'student@timetablepro.com',
-          name: 'Student User',
-          role: 'STUDENT',
-          isActive: true,
-          emailVerified: true,
-          preferences: {},
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          $collectionId: 'users',
-          $databaseId: 'timetablepro',
-          $createdAt: new Date().toISOString(),
-          $updatedAt: new Date().toISOString(),
-          $permissions: []
-        }
-      ];
+      const userData = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS
+      );
+      
+      return userData.documents as unknown as User[];
     } catch (error) {
       console.error('Error getting users:', error);
       throw error;
@@ -505,8 +428,13 @@ class AuthService {
    */
   async getTeachers(): Promise<User[]> {
     try {
-      const allUsers = await this.getUsers();
-      return allUsers.filter(user => user.role === 'TEACHER');
+      const userData = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        [Query.equal('role', USER_ROLES.TEACHER)]
+      );
+      
+      return userData.documents as unknown as User[];
     } catch (error) {
       console.error('Error getting teachers:', error);
       throw error;
@@ -518,8 +446,13 @@ class AuthService {
    */
   async getStudents(): Promise<User[]> {
     try {
-      const allUsers = await this.getUsers();
-      return allUsers.filter(user => user.role === 'STUDENT');
+      const userData = await databases.listDocuments(
+        DB_CONFIG.databaseId,
+        DB_CONFIG.collections.USERS,
+        [Query.equal('role', USER_ROLES.STUDENT)]
+      );
+      
+      return userData.documents as unknown as User[];
     } catch (error) {
       console.error('Error getting students:', error);
       throw error;

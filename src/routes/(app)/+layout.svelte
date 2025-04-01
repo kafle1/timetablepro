@@ -5,7 +5,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { ROUTES, USER_ROLES } from '$lib/config';
   import { browser } from '$app/environment';
-  import { Calendar, Users, Building2, Settings, UserCircle, LogOut, Home } from 'lucide-svelte';
+  import { Calendar, Users, Building2, Settings, UserCircle, LogOut, Home, AlertTriangle } from 'lucide-svelte';
   import ThemeToggle from '$lib/components/theme/ThemeToggle.svelte';
   import MobileNav from '$lib/components/navigation/MobileNav.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -27,8 +27,15 @@
     isLoading = false;
   });
 
+  interface NavigationItem {
+    title: string;
+    href: string;
+    icon: any;
+    roles?: string[];
+  }
+
   // Navigation items - these will be filtered based on user role
-  const mainNavigation = [
+  const mainNavigation: NavigationItem[] = [
     {
       title: 'Dashboard',
       href: $userStore?.role === USER_ROLES.ADMIN 
@@ -41,7 +48,7 @@
     },
     {
       title: 'Schedule',
-      href: '/schedule',
+      href: ROUTES.SCHEDULES,
       icon: Calendar,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     },
@@ -68,20 +75,26 @@
       href: ROUTES.AVAILABILITY,
       icon: Calendar,
       roles: [USER_ROLES.TEACHER]
-    }
-  ];
-
-  const userNavigation = [
+    },
     {
-      title: 'Profile',
-      href: ROUTES.PROFILE,
-      icon: UserCircle,
-      roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
+      title: 'Reports',
+      href: ROUTES.REPORTS,
+      icon: AlertTriangle,
+      roles: [USER_ROLES.ADMIN]
     },
     {
       title: 'Settings',
       href: ROUTES.SETTINGS,
       icon: Settings,
+      roles: [USER_ROLES.ADMIN]
+    }
+  ];
+
+  const userNavigation: NavigationItem[] = [
+    {
+      title: 'Profile',
+      href: ROUTES.PROFILE,
+      icon: UserCircle,
       roles: [USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.STUDENT]
     }
   ];

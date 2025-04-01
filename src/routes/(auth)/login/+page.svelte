@@ -61,6 +61,8 @@
     async function handleLogin() {
         // Clear any existing errors
         error = null;
+        emailError = null;
+        passwordError = null;
         
         // Validate the form
         if (!validateForm()) {
@@ -92,6 +94,7 @@
             // Use direct location change instead of SvelteKit navigation to avoid loops
             window.location.href = targetRoute;
         } catch (err: any) {
+            console.error('Login error:', err);
             error = err.message || 'Failed to login. Please try again.';
             loading = false;
         }
